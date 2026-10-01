@@ -32,15 +32,21 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ maxWidth: 480, margin: "80px auto", textAlign: "center", padding: 24 }}>
-          <h1>Došlo je do greške</h1>
-          <p className="hint">
-            Prototip je naišao na neočekivanu grešku u prikazu, najvjerojatnije zbog zastarjelih
-            podataka spremljenih u ovom pregledniku iz ranije verzije alata.
-          </p>
-          <button className="btn btn-primary" onClick={this.handlePocisti}>
-            Počisti spremljene podatke i počni novu
-          </button>
+        <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+          <div className="w-full max-w-[460px] rounded-[10px] border border-slate-200 bg-white p-6 text-center">
+            <h1>Došlo je do greške</h1>
+            <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
+              Prototip je naišao na neočekivanu grešku u prikazu, najvjerojatnije zbog zastarjelih
+              podataka spremljenih u ovom pregledniku iz ranije verzije alata.
+            </p>
+            <button
+              type="button"
+              onClick={this.handlePocisti}
+              className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-[var(--color-accent)] px-3 text-[13px] font-medium text-white hover:bg-[var(--color-accent-hover)]"
+            >
+              Počisti spremljene podatke i počni novu
+            </button>
+          </div>
         </div>
       );
     }

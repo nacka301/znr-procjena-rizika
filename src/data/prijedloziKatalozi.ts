@@ -1,18 +1,7 @@
 // Uredive liste uobičajenih stavki za brzi odabir. Sve su samo prijedlozi - stručnjak klikom
 // bira, ništa se ne upisuje automatski, a odabrano ostaje slobodno uredivo nakon odabira.
-
-export const OZO_KATALOG: string[] = [
-  "Zaštitne rukavice",
-  "Zaštitne naočale / vizir",
-  "Zaštita sluha (čepići ili slušalice)",
-  "Zaštitna obuća",
-  "Zaštitna odjeća",
-  "Zaštitna kaciga",
-  "Maska za disanje / respirator",
-  "Zaštitni pojas / remenje za rad na visini",
-  "Zaštitna pregača",
-  "Reflektirajuća odjeća",
-];
+// OZO i pripadne norme nisu više ovdje: žive u src/data/ozoKatalog.ts, gdje svaka stavka nosi
+// svoju normu.
 
 export const LIJECNICKI_PREGLED_KATALOG: string[] = [
   "Opći liječnički pregled",
@@ -26,22 +15,6 @@ export const LIJECNICKI_PREGLED_KATALOG: string[] = [
   "Toksikološka obrada prema izloženosti",
 ];
 
-// Opće poznate oznake HRN EN normi za pojedine vrste OZO. Primjenjivost na konkretan rizik je
-// uvijek "provjeriti prije korištenja" - alat ne tvrdi da je navedena norma ispravna za slučaj.
-export const OZO_NORME_KATALOG: string[] = [
-  "HRN EN 388 (zaštitne rukavice - mehanički rizici)",
-  "HRN EN 166 (zaštita očiju)",
-  "HRN EN ISO 20345 (zaštitna obuća)",
-  "HRN EN 352 (zaštita sluha)",
-  "HRN EN 149 (zaštitne maske za disanje)",
-  "HRN EN 397 (zaštitne kacige)",
-  "HRN EN 361 (sigurnosni pojas/pribor za rad na visini)",
-  "HRN EN 343 (zaštita od lošeg vremena)",
-  "HRN EN ISO 11612 (zaštita od topline i plamena)",
-  "HRN EN 407 (zaštitne rukavice - toplinski rizici)",
-  "HRN EN ISO 374-1 (zaštitne rukavice - kemikalije i mikroorganizmi)",
-];
-
 export const ISPITIVANJA_KATALOG: string[] = [
   "Ispitivanje električnih instalacija",
   "Ispitivanje radne opreme",
@@ -52,4 +25,24 @@ export const ISPITIVANJA_KATALOG: string[] = [
   "Ispitivanje kemijskih štetnosti u zraku",
   "Ispitivanje ventilacije / klimatizacije",
   "Ispitivanje gromobranske instalacije",
+];
+
+// Česte točke čl. 3 Pravilnika o poslovima s posebnim uvjetima rada (NN 5/84). Popis je kratak
+// izbor za brzi unos, nije potpun prijepis propisa - primjenjivost na konkretan posao uvijek je
+// PROVJERITI. Slobodan unos je dopušten.
+export const TOCKA_PRAVILNIKA_PRIJEDLOZI: string[] = [
+  "16 – teško fizičko naprezanje",
+  "17 – rad na visini iznad 3 m",
+];
+
+// Rokovi u planu mjera - brzi odabir, uz mogućnost konkretnog datuma.
+export const ROK_PRIJEDLOZI: string[] = ["odmah", "30 dana", "60 dana", "90 dana"];
+
+export const PERIODIKA_PRIJEDLOZI: string[] = [
+  "jednokratno",
+  "mjesečno",
+  "tromjesečno",
+  "polugodišnje",
+  "godišnje",
+  "svake 2 godine",
 ];

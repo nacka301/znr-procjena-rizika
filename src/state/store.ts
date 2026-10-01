@@ -19,12 +19,16 @@ import {
   DEMO_POSLOVI,
   DEMO_RADNA_MJESTA,
   DEMO_RADNA_OPREMA,
+  PRIMJER_VERZIJA,
 } from "../data/demoData";
 import { BASE_RADNA_OPREMA } from "../data/baseRadnaOprema";
 import type { RadnaOprema } from "../types";
 
 export const STORE_NAME = "znr-procjena-rizika";
-const STORE_VERSION = 1;
+// Verzija OBLIKA spremljenog stanja. Migracija nikad ne odbacuje podatke - samo nedostajuća
+// polja dobivaju zadane vrijednosti (normalizirajUcitanoStanje), pa staro stanje ne može srušiti
+// nijedan korak.
+const STORE_VERSION = 2;
 
 const PRAZAN_POSLODAVAC: Poslodavac = {
   naziv: "",
@@ -155,6 +159,9 @@ function normalizirajUcitanoStanje(raw: unknown): Partial<StoreState> {
     napomenePriloga:
       s.napomenePriloga && typeof s.napomenePriloga === "object" ? s.napomenePriloga : {},
     aktivniPosaoId: typeof s.aktivniPosaoId === "string" ? s.aktivniPosaoId : null,
+    zadnjiKorak: typeof s.zadnjiKorak === "string" ? s.zadnjiKorak : "poslodavac",
+    korisnikMijenjao: s.korisnikMijenjao === true,
+    primjerVerzija: typeof s.primjerVerzija === "number" ? s.primjerVerzija : 0,
   };
 }
 
@@ -167,6 +174,13 @@ interface StoreState {
   ispitivanja: Ispitivanje[];
   napomenePriloga: Record<string, string>;
   aktivniPosaoId: string | null;
+  /** Korak na koji se vraća "Nastavi gdje si stao" s nadzorne ploče. */
+  zadnjiKorak: string;
+  /** Postaje true na prvu korisnikovu izmjenu - tada se primjer više ne osvježava sam. */
+  korisnikMijenjao: boolean;
+  /** Verzija primjera iz koje je stanje učitano. */
+  primjerVerzija: number;
+  setZadnjiKorak: (korak: string) => void;
   setAktivniPosaoId: (id: string | null) => void;
   setNapomenaPriloga: (kljuc: string, tekst: string) => void;
   togglePosebniUvjeti: (posaoId: string) => void;
@@ -212,7 +226,18 @@ interface StoreState {
 
 export const useStore = create<StoreState>()(
   persist(
-    (set) => ({
+    (rawSet) => {
+      // Svaka izmjena PODATAKA procjene postavlja korisnikMijenjao = true. Time primjer prestaje
+      // biti "neduznut" i više se ne osvježava sam pri podizanju verzije primjera. Radnje koje
+      // mijenjaju samo prikaz (odabrani korak, odabrani posao) koriste rawSet i ne diraju zastavicu.
+      type Partial_ = Partial<StoreState> | ((s: StoreState) => Partial<StoreState>);
+      const set = (partial: Partial_) =>
+        rawSet((s) => ({
+          ...(typeof partial === "function" ? partial(s) : partial),
+          korisnikMijenjao: true,
+        }));
+
+      return {
       poslodavac: DEMO_POSLODAVAC,
       radnaMjesta: DEMO_RADNA_MJESTA,
       poslovi: DEMO_POSLOVI,
@@ -221,7 +246,11 @@ export const useStore = create<StoreState>()(
       ispitivanja: DEMO_ISPITIVANJA,
       napomenePriloga: {},
       aktivniPosaoId: DEMO_POSLOVI[0]?.id ?? null,
-      setAktivniPosaoId: (id) => set({ aktivniPosaoId: id }),
+      zadnjiKorak: "poslodavac",
+      korisnikMijenjao: false,
+      primjerVerzija: PRIMJER_VERZIJA,
+      setZadnjiKorak: (korak) => rawSet({ zadnjiKorak: korak }),
+      setAktivniPosaoId: (id) => rawSet({ aktivniPosaoId: id }),
       setNapomenaPriloga: (kljuc, tekst) =>
         set((s) => ({ napomenePriloga: { ...s.napomenePriloga, [kljuc]: tekst } })),
       togglePosebniUvjeti: (posaoId) =>
@@ -452,7 +481,7 @@ export const useStore = create<StoreState>()(
         set((s) => ({ mjerePlana: s.mjerePlana.filter((m) => m.id !== id) })),
 
       ucitajPrimjer: () =>
-        set({
+        rawSet({
           poslodavac: DEMO_POSLODAVAC,
           radnaMjesta: DEMO_RADNA_MJESTA,
           poslovi: DEMO_POSLOVI,
@@ -461,9 +490,11 @@ export const useStore = create<StoreState>()(
           ispitivanja: DEMO_ISPITIVANJA,
           napomenePriloga: {},
           aktivniPosaoId: DEMO_POSLOVI[0]?.id ?? null,
+          korisnikMijenjao: false,
+          primjerVerzija: PRIMJER_VERZIJA,
         }),
       ocistiSve: () =>
-        set({
+        rawSet({
           poslodavac: PRAZAN_POSLODAVAC,
           radnaMjesta: [],
           poslovi: [],
@@ -472,8 +503,13 @@ export const useStore = create<StoreState>()(
           ispitivanja: [],
           napomenePriloga: {},
           aktivniPosaoId: null,
+          zadnjiKorak: "poslodavac",
+          // Prazna procjena je korisnikova, ne primjer - primjer se ne vraća sam.
+          korisnikMijenjao: true,
+          primjerVerzija: PRIMJER_VERZIJA,
         }),
-    }),
+      };
+    },
     {
       name: STORE_NAME,
       version: STORE_VERSION,
@@ -482,6 +518,14 @@ export const useStore = create<StoreState>()(
         ...currentState,
         ...normalizirajUcitanoStanje(persistedState),
       }),
+      // Kad se promijeni verzija primjera, a korisnik nije ništa mijenjao, automatski učitaj
+      // novi primjer - inače bi netaknuti primjer zauvijek ostao na staroj verziji.
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        if (!state.korisnikMijenjao && state.primjerVerzija !== PRIMJER_VERZIJA) {
+          state.ucitajPrimjer();
+        }
+      },
     }
   )
 );

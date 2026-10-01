@@ -102,3 +102,52 @@ Rješenje (vidi `src/state/store.ts`, `src/components/ErrorBoundary.tsx`):
 
 ## Dodatna provjera: Prilog "Popis poslova s posebnim uvjetima rada" (2026-10-01, drugi krug)
 Prilog 9 je promijenjen iz čisto ručnog popisa (kvačica po poslu) u automatski izveden popis: posao se automatski uključuje čim ijedan njegov rizik u analizi ima upisanu "Točku Pravilnika" (vidi `src/utils/posebniUvjeti.ts`). Kvačica za takav posao je tada onemogućena (uklanjanje se radi brisanjem točke u analizi rizika, ne u prilogu) i polje obrazloženja automatski predlaže tekst sastavljen od naziva rizika i upisane točke, uz mogućnost ručne izmjene teksta. Stručnjak i dalje može ručno dodati posao bez upisane točke (kvačica tada ostaje aktivna). Isti izračun koristi i Pregled dokumenta (korak 7) i izvoz u Word.
+
+---
+
+## 9. Redizajn sučelja (Tailwind + shadcn/ui obrazac)
+
+Ovaj krug mijenja **samo prikaz i interakciju**. Logika izračuna (`izracunajRazinu`,
+`razinaPosla`), domenski tipovi (`src/types.ts`) i scenarij primjera ostaju isti.
+
+### Katalog OZO umjesto dva odvojena polja
+
+- Novi `src/data/ozoKatalog.ts`: svaka stavka OZO **nosi svoju normu**, pa stručnjak više ne bira
+  normu zasebno. Odabirom kvačice upisuju se i naziv i norma.
+- Tipovi podataka **nisu mijenjani**: OZO i norme i dalje žive u `Rizik.ozoPrijedlog` i
+  `Rizik.ozoNorma` kao tekst razdvojen znakom `;`. Katalog je prikazni sloj nad tim tekstom
+  (`src/utils/ozo.ts`), pa izvoz u Word i prilozi čitaju isto što i prije.
+- Što nije u katalogu upisuje se preko "+ Druga oprema" i prikazuje kao zasebna skupina
+  ("Upisano izvan kataloga"), pa se ništa ne gubi.
+- Nazivi OZO u primjeru usklađeni su s rječnikom kataloga (ista oprema, iste norme). Oznake
+  normi više ne nose opisnu zagradu, jer opis sada nosi naziv stavke kataloga.
+- Zagrade tipa "(zaštitna obuća)" uz oznaku norme uklonjene su iz primjera; status "provjeriti"
+  ostaje, sada kao pločica PROVJERITI uz katalog i uz točku Pravilnika.
+
+### Preporuke OZO po vrsti opasnosti
+
+- `src/data/ozoPreporuke.ts` drži mapiranje `kategorija:kod` (Prilog III) → id-ovi stavki
+  kataloga, u zasebnoj datoteci da ga stručnjak može mijenjati bez diranja koda.
+- Preporuke se **nikad ne označavaju automatski** — prikazuju se pod "Često za ovu opasnost" i
+  korisnik ih klikne. To je i dalje prijedlog, ne pravna tvrdnja.
+- Mjere koje nisu OZO s normom (npr. "odjeća bez slobodnih dijelova" pri radu na strojevima,
+  ograničenje mase ručno nošenog tereta) namjerno nisu u katalogu — pripadaju u Plan mjera.
+
+### Panel "Provjere"
+
+- `src/utils/provjere.ts` izvodi popis onoga što nedostaje ili je nedosljedno iz istih podataka
+  koje koriste prilozi. Nema novih pravnih tvrdnji: provjerava se dosljednost unosa (veliki rizik
+  bez točke Pravilnika / bez pregleda, povećani rizik bez OZO, posao s velikim rizikom bez mjere,
+  radno mjesto bez radnika ili bez posla, neocijenjeni rizik, nepopunjen checklist ergonomije).
+- Isti izvor hrani status svakog koraka u stepperu i brojku na nadzornoj ploči, pa se brojevi ne
+  mogu razići.
+
+### Otpornost spremljenog stanja
+
+- `STORE_VERSION` podignut na 2; migracija i dalje samo popunjava nedostajuća polja, ne odbacuje
+  podatke.
+- Nova polja: `zadnjiKorak` (za "Nastavi gdje si stao"), `korisnikMijenjao` i `primjerVerzija`.
+- `PRIMJER_VERZIJA` u `src/data/demoData.ts`: kad se primjer promijeni i broj se podigne,
+  korisnik koji **nije ništa mijenjao** pri sljedećem otvaranju automatski dobiva novi primjer.
+  Zastavicu `korisnikMijenjao` postavlja omotač oko `set` u storeu, pa je nemoguće zaboraviti je
+  postaviti u novoj akciji; radnje koje mijenjaju samo prikaz koriste `rawSet`.

@@ -5,6 +5,8 @@ import {
   SKALA_ODGOVORA,
   prosjekUVjerojatnost,
 } from "../data/psihosocijalniUpitnik";
+import { Button } from "./ui/button";
+import { Select } from "./ui/field";
 
 const VJEROJATNOST_TEKST: Record<Vjerojatnost, string> = {
   1: "malo vjerojatno",
@@ -31,64 +33,55 @@ export default function PsihosocijalniUpitnik({
   const predlozenaVjerojatnost = prosjekUVjerojatnost(prosjek);
 
   return (
-    <div
-      style={{
-        border: "1px solid var(--color-border)",
-        borderRadius: 8,
-        padding: 12,
-        marginTop: 8,
-        background: "var(--color-surface-muted)",
-      }}
-    >
-      <p className="hint" style={{ marginBottom: 10 }}>
-        Kratki upitnik za procjenu vjerojatnosti psihosocijalnih/psihofizioloških rizika. Ocijenite
-        koliko se svaka tvrdnja odnosi na ovaj posao. Rezultat je samo prijedlog vjerojatnosti —
-        stručnjak ga može slobodno promijeniti.
+    <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+      <p className="mb-3 text-[12px] leading-snug text-slate-600">
+        Kratki upitnik za procjenu vjerojatnosti psihosocijalnih/psihofizioloških rizika. Rezultat je
+        samo prijedlog vjerojatnosti — stručnjak ga može slobodno promijeniti.
       </p>
-      {PSIHOSOCIJALNI_UPITNIK.map((pitanje) => (
-        <div key={pitanje.id} className="field-row">
-          <label>
-            {pitanje.tekst} <span className="hint">({pitanje.podrucje})</span>
-          </label>
-          <select
-            value={odgovori[pitanje.id]}
-            onChange={(e) =>
-              setOdgovori((o) => ({ ...o, [pitanje.id]: Number(e.target.value) }))
-            }
+      <div className="flex flex-col gap-2">
+        {PSIHOSOCIJALNI_UPITNIK.map((pitanje) => (
+          <div
+            key={pitanje.id}
+            className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3"
           >
-            {SKALA_ODGOVORA.map((s) => (
-              <option key={s.vrijednost} value={s.vrijednost}>
-                {s.oznaka}
-              </option>
-            ))}
-          </select>
-        </div>
-      ))}
+            <span className="min-w-0 flex-1 text-[13px] leading-snug text-slate-700">
+              {pitanje.tekst}
+              <span className="ml-1 text-slate-400">({pitanje.podrucje})</span>
+            </span>
+            <Select
+              className="h-8 w-full sm:w-[150px]"
+              aria-label={pitanje.tekst}
+              value={odgovori[pitanje.id]}
+              onChange={(e) =>
+                setOdgovori((o) => ({ ...o, [pitanje.id]: Number(e.target.value) }))
+              }
+            >
+              {SKALA_ODGOVORA.map((s) => (
+                <option key={s.vrijednost} value={s.vrijednost}>
+                  {s.oznaka}
+                </option>
+              ))}
+            </Select>
+          </div>
+        ))}
+      </div>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginTop: 10,
-          paddingTop: 10,
-          borderTop: "1px solid var(--color-border)",
-        }}
-      >
-        <span className="hint">
-          Prosjek: <strong>{prosjek.toFixed(2)}</strong> → prijedlog vjerojatnosti:{" "}
-          <strong>{VJEROJATNOST_TEKST[predlozenaVjerojatnost]}</strong>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-3">
+        <span className="text-[12px] text-slate-600">
+          Prosjek <span className="tabular font-semibold">{prosjek.toFixed(2)}</span> → prijedlog:{" "}
+          <span className="font-semibold">{VJEROJATNOST_TEKST[predlozenaVjerojatnost]}</span>
         </span>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="btn btn-sm" onClick={onOdustani}>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" onClick={onOdustani}>
             Odustani
-          </button>
-          <button
-            className="btn btn-primary btn-sm"
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => onPrimijeni(predlozenaVjerojatnost)}
           >
             Primijeni prijedlog
-          </button>
+          </Button>
         </div>
       </div>
     </div>

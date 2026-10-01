@@ -1,23 +1,31 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Monitor, Plus, Trash2, Wrench } from "lucide-react";
 import { useStore } from "../state/store";
-import { izracunajRazinu, razinaPosla, type Posljedica, type Vjerojatnost } from "../types";
+import { useNav } from "../state/navigacija";
+import { izracunajRazinu, razinaPosla, type Vjerojatnost } from "../types";
+import type { Rizik } from "../types";
+import { PRILOG_III_OPCIJE } from "../data/prilogIII";
+import PageHeader from "../components/PageHeader";
 import RiskBadge from "../components/RiskBadge";
-import PrilogIIIPicker from "../components/PrilogIIIPicker";
+import MatricaVP from "../components/MatricaVP";
 import PsihosocijalniUpitnik from "../components/PsihosocijalniUpitnik";
+import { Card, CardBody, CardHeader, EmptyState } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { AutoTextarea } from "../components/ui/field";
+import { Combobox, type ComboOpcija } from "../components/ui/combobox";
+import { Switch } from "../components/ui/switch";
+import { Tooltip } from "../components/ui/tooltip";
+import { useToast } from "../components/ui/toast";
+import { KLASA_FOKUSA, useFokusRef } from "../lib/fokus";
+import { cn } from "../lib/utils";
 
-const VJEROJATNOST_LABEL: Record<Vjerojatnost, string> = {
-  1: "1 – Malo vjerojatno",
-  2: "2 – Vjerojatno",
-  3: "3 – Vrlo vjerojatno",
-};
-const POSLJEDICA_LABEL: Record<Posljedica, string> = {
-  1: "1 – Malo štetno",
-  2: "2 – Srednje štetno",
-  3: "3 – Izrazito štetno",
+const NASLOV_KATEGORIJE: Record<string, string> = {
+  opasnost: "I. Opasnosti",
+  stetnost: "II. Štetnosti",
+  napor: "III. Napori",
 };
 
 export default function Step4Analiza() {
-  const poslodavac = useStore((s) => s.poslodavac);
   const poslovi = useStore((s) => s.poslovi);
   const radnaOprema = useStore((s) => s.radnaOprema);
   const aktivniPosaoId = useStore((s) => s.aktivniPosaoId);
@@ -28,316 +36,292 @@ export default function Step4Analiza() {
   const toggleOpremaNaPoslu = useStore((s) => s.toggleOpremaNaPoslu);
   const addRadnaOpremaOpcija = useStore((s) => s.addRadnaOpremaOpcija);
   const toggleKoristiRacunalo4h = useStore((s) => s.toggleKoristiRacunalo4h);
-  const [novaOprema, setNovaOprema] = useState("");
-  const [prikaziPicker, setPrikaziPicker] = useState(false);
-  const [upitnikZaRizikId, setUpitnikZaRizikId] = useState<string | null>(null);
+  const { fokus } = useNav();
+  const { prikazi } = useToast();
 
   const posao = poslovi.find((p) => p.id === aktivniPosaoId) ?? poslovi[0] ?? null;
+
+  const opcijePriloga = useMemo<ComboOpcija[]>(
+    () =>
+      PRILOG_III_OPCIJE.map((o) => ({
+        vrijednost: `${o.kategorija}|${o.path.join(".")}`,
+        naziv: o.naziv,
+        opis: o.punaStaza,
+        grupa: NASLOV_KATEGORIJE[o.kategorija],
+      })),
+    []
+  );
 
   if (!posao) {
     return (
       <div>
-        <div className="page-header">
-          <div className="eyebrow">Cjelina 3 · Analiza i procjena rizika po poslovima</div>
-          <h1>Analiza posla</h1>
-        </div>
-        <div className="empty-state">
-          Najprije dodajte barem jedan posao u koraku "Poslovi".
-        </div>
+        <PageHeader eyebrow="Korak 4 · Analiza i procjena rizika" naslov="Analiza posla" />
+        <EmptyState>Najprije dodajte barem jedan posao u koraku 3.</EmptyState>
       </div>
     );
   }
 
-  function dodajOpremu() {
-    if (!novaOprema.trim() || !posao) return;
-    const id = addRadnaOpremaOpcija(novaOprema.trim());
-    toggleOpremaNaPoslu(posao.id, id);
-    setNovaOprema("");
+  function dodajRizik(vrijednost: string) {
+    const [kategorija, kodovi] = vrijednost.split("|");
+    if (!kategorija || !kodovi) return;
+    addRizik(posao!.id, kategorija as Rizik["kategorija"], kodovi.split("."));
   }
 
-  const razina = razinaPosla(posao.rizici);
+  function ukloni(r: Rizik) {
+    removeRizik(posao!.id, r.id);
+    prikazi(`Uklonjen rizik: ${r.naziv}`, {
+      oznaka: "Poništi",
+      onClick: () => {
+        addRizik(posao!.id, r.kategorija, r.path);
+      },
+    });
+  }
 
   return (
-    <div>
-      <div className="page-header">
-        <div className="eyebrow">Cjelina 3 · Analiza i procjena rizika po poslovima</div>
-        <h1>Analiza posla</h1>
-        <p className="hint">
-          Za odabrani posao birate opasnosti, štetnosti i napore iz Priloga III te sami ocjenjujete
-          vjerojatnost i posljedicu za svaki rizik. Alat samo izračunava razinu rizika po matrici —
-          vjerojatnost i posljedicu uvijek određuje stručnjak.
-        </p>
-      </div>
+    <div className="flex flex-col gap-4">
+      <PageHeader
+        eyebrow="Korak 4 · Analiza i procjena rizika po poslovima"
+        naslov="Analiza posla"
+        opis="Za odabrani posao birate opasnosti, štetnosti i napore iz Priloga III te ocjenjujete vjerojatnost i posljedicu. Alat samo izračunava razinu po matrici — ocjenu uvijek daje stručnjak."
+      />
 
-      <div className="card">
-        <div className="field-row">
-          <label>Odabrani posao</label>
-          <select
-            value={posao.id}
-            onChange={(e) => setAktivniPosaoId(e.target.value)}
-            style={{ maxWidth: 420 }}
-          >
-            {poslovi.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.naziv}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          <span className="hint">Ukupna razina rizika posla:</span>
-          <RiskBadge razina={razina} />
-        </div>
-        {poslodavac.isPrimjer && (
-          <p className="hint" style={{ marginTop: 8, fontStyle: "italic" }}>
-            Napomena: vjerojatnost i posljedica u ovom primjeru su ilustrativne, odabrane radi
-            prikaza izračuna matrice — nisu stvarna stručna procjena.
-          </p>
-        )}
-      </div>
+      <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+        {/* Lijevo: popis poslova - nema skakanja između stranica */}
+        <Card className="h-fit">
+          <CardHeader title="Poslovi" />
+          <CardBody className="p-0">
+            <ul className="divide-y divide-slate-100">
+              {poslovi.map((p) => {
+                const aktivno = p.id === posao.id;
+                return (
+                  <li key={p.id}>
+                    <button
+                      onClick={() => setAktivniPosaoId(p.id)}
+                      className={cn(
+                        "flex w-full items-center gap-2 px-3 py-2 text-left transition-colors",
+                        aktivno ? "bg-[var(--color-accent-soft)]" : "hover:bg-slate-50"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "min-w-0 flex-1 truncate text-[13px]",
+                          aktivno
+                            ? "font-medium text-[var(--color-accent)]"
+                            : "text-slate-700"
+                        )}
+                      >
+                        {p.naziv || "Bez naziva"}
+                      </span>
+                      <RiskBadge razina={razinaPosla(p.rizici)} />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </CardBody>
+        </Card>
 
-      <div className="card">
-        <div className="card-title-row">
-          <h2>Rizici posla ({posao.rizici.length})</h2>
-          <button className="btn btn-primary btn-sm" onClick={() => setPrikaziPicker((v) => !v)}>
-            {prikaziPicker ? "Zatvori popis Priloga III" : "+ Dodaj rizik iz Priloga III"}
-          </button>
-        </div>
-
-        {prikaziPicker && (
-          <div
-            style={{
-              border: "1px solid var(--color-border)",
-              borderRadius: 8,
-              padding: 12,
-              marginBottom: 14,
-              background: "var(--color-surface-muted)",
-            }}
-          >
-            <PrilogIIIPicker
-              onOdaberi={(kategorija, path) => {
-                addRizik(posao.id, kategorija, path);
-              }}
+        {/* Desno: analiza odabranog posla */}
+        <div className="flex min-w-0 flex-col gap-4">
+          <Card>
+            <CardHeader
+              title={posao.naziv || "Bez naziva"}
+              description={`${posao.rizici.length} ${posao.rizici.length === 1 ? "rizik" : "rizika"} · ukupna razina posla`}
+              actions={<RiskBadge razina={razinaPosla(posao.rizici)} />}
             />
-          </div>
-        )}
+            <CardBody className="flex flex-col gap-3">
+              <Combobox
+                opcije={opcijePriloga}
+                onOdaberi={dodajRizik}
+                placeholder="Dodaj opasnost, štetnost ili napor — npr. buka, pad, dizanje tereta…"
+                prazno="Nema pogodaka u Prilogu III."
+                triggerClassName="text-slate-500"
+                trigger={
+                  <Button variant="secondary" className="w-full justify-start font-normal">
+                    <Plus />
+                    <span className="text-slate-500">
+                      Dodaj iz Priloga III — upišite npr. „buka”
+                    </span>
+                  </Button>
+                }
+              />
 
-        {posao.rizici.length === 0 && (
-          <div className="empty-state">
-            Nema dodanih rizika. Koristite gumb iznad za odabir iz Priloga III.
-          </div>
-        )}
-
-        {posao.rizici.map((r) => {
-          const razinaRizika = izracunajRazinu(r.vjerojatnost, r.posljedica);
-          return (
-            <div
-              key={r.id}
-              style={{
-                border: "1px solid var(--color-border)",
-                borderRadius: 8,
-                padding: 12,
-                marginBottom: 10,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  gap: 10,
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 600 }}>{r.naziv}</div>
-                  <div className="hint">{r.punaStaza}</div>
-                </div>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <RiskBadge razina={razinaRizika} />
-                  <button
-                    className="btn btn-sm btn-danger"
-                    onClick={() => removeRizik(posao.id, r.id)}
-                  >
-                    Ukloni
-                  </button>
-                </div>
-              </div>
-
-              <div className="field-row" style={{ marginTop: 10 }}>
-                <label>Mogući neželjeni događaj</label>
-                <input
-                  type="text"
-                  value={r.moguciDogadjaj}
-                  onChange={(e) =>
-                    updateRizik(posao.id, r.id, { moguciDogadjaj: e.target.value })
-                  }
-                  placeholder="npr. nagnječenje prsta, posjekotina, pad s visine…"
-                />
-              </div>
-
-              <div className="field-grid">
-                <div className="field-row">
-                  <label>Vjerojatnost</label>
-                  <select
-                    className={r.vjerojatnost === null ? "input-warn" : undefined}
-                    value={r.vjerojatnost ?? ""}
-                    onChange={(e) =>
-                      updateRizik(posao.id, r.id, {
-                        vjerojatnost: e.target.value
-                          ? (Number(e.target.value) as Vjerojatnost)
-                          : null,
-                      })
-                    }
-                  >
-                    <option value="">— odaberi —</option>
-                    {([1, 2, 3] as Vjerojatnost[]).map((v) => (
-                      <option key={v} value={v}>
-                        {VJEROJATNOST_LABEL[v]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="field-row">
-                  <label>Posljedica</label>
-                  <select
-                    className={r.posljedica === null ? "input-warn" : undefined}
-                    value={r.posljedica ?? ""}
-                    onChange={(e) =>
-                      updateRizik(posao.id, r.id, {
-                        posljedica: e.target.value
-                          ? (Number(e.target.value) as Posljedica)
-                          : null,
-                      })
-                    }
-                  >
-                    <option value="">— odaberi —</option>
-                    {([1, 2, 3] as Posljedica[]).map((p) => (
-                      <option key={p} value={p}>
-                        {POSLJEDICA_LABEL[p]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {r.kategorija === "napor" && (
-                <div style={{ marginBottom: 10 }}>
-                  <button
-                    className="btn btn-sm"
-                    onClick={() =>
-                      setUpitnikZaRizikId(upitnikZaRizikId === r.id ? null : r.id)
-                    }
-                  >
-                    {upitnikZaRizikId === r.id
-                      ? "Zatvori upitnik"
-                      : "Izračunaj vjerojatnost iz upitnika (psihosocijalni rizici)"}
-                  </button>
-                  {upitnikZaRizikId === r.id && (
-                    <PsihosocijalniUpitnik
-                      onOdustani={() => setUpitnikZaRizikId(null)}
-                      onPrimijeni={(vjerojatnost) => {
-                        updateRizik(posao.id, r.id, { vjerojatnost });
-                        setUpitnikZaRizikId(null);
-                      }}
+              {posao.rizici.length === 0 ? (
+                <EmptyState>
+                  Nema evidentiranih opasnosti, štetnosti ni napora za ovaj posao.
+                </EmptyState>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {posao.rizici.map((r) => (
+                    <RizikRedak
+                      key={r.id}
+                      r={r}
+                      fokusirano={fokus?.korak === "analiza" && fokus.rizikId === r.id}
+                      onUpdate={(patch) => updateRizik(posao.id, r.id, patch)}
+                      onUkloni={() => ukloni(r)}
                     />
-                  )}
-                </div>
+                  ))}
+                </ul>
               )}
+            </CardBody>
+          </Card>
 
-              <div className="field-row">
-                <label>
-                  Točka Pravilnika (čl. 3, NN 5/84){" "}
-                  <span className="tag-provjeriti">provjeriti</span>
-                </label>
-                <input
-                  type="text"
-                  value={r.tockaPravilnika}
-                  onChange={(e) =>
-                    updateRizik(posao.id, r.id, { tockaPravilnika: e.target.value })
-                  }
-                  placeholder="npr. 1, 2, 18 — upišite broj točke ako je posao s posebnim uvjetima rada"
-                  style={{ maxWidth: 320 }}
-                />
-              </div>
-
-              {(razinaRizika === "srednji" || razinaRizika === "veliki") && (
-                <p className="hint" style={{ marginTop: 8 }}>
-                  OZO i liječnički pregled za ovaj rizik uređuju se u koraku "Mjere i OZO".
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="card">
-        <h2>Radna oprema koju posao koristi</h2>
-        <div className="chip-row" style={{ marginBottom: 12 }}>
-          {radnaOprema
-            .filter((o) => posao.radnaOpremaIds.includes(o.id))
-            .map((o) => (
-              <span key={o.id} className="chip">
-                {o.naziv}
-                <button onClick={() => toggleOpremaNaPoslu(posao.id, o.id)} aria-label="Ukloni">
-                  ×
-                </button>
-              </span>
-            ))}
-          {posao.radnaOpremaIds.length === 0 && (
-            <span className="hint">Nije odabrana radna oprema.</span>
-          )}
-        </div>
-
-        <details>
-          <summary className="hint" style={{ cursor: "pointer", marginBottom: 8 }}>
-            Odaberi iz popisa opreme
-          </summary>
-          <div className="chip-row" style={{ marginTop: 8 }}>
-            {radnaOprema
-              .filter((o) => !posao.radnaOpremaIds.includes(o.id))
-              .map((o) => (
-                <button
-                  key={o.id}
-                  className="btn btn-sm"
-                  onClick={() => toggleOpremaNaPoslu(posao.id, o.id)}
-                >
-                  + {o.naziv}
-                </button>
-              ))}
-          </div>
-        </details>
-
-        <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "flex-end" }}>
-          <div className="field-row" style={{ flex: 1, marginBottom: 0 }}>
-            <label>Dodaj vlastitu opremu</label>
-            <input
-              type="text"
-              value={novaOprema}
-              onChange={(e) => setNovaOprema(e.target.value)}
-              placeholder="npr. Nazivna oprema koje nema na popisu"
-              onKeyDown={(e) => e.key === "Enter" && dodajOpremu()}
+          <Card>
+            <CardHeader
+              title="Radna oprema koju posao koristi"
+              description="Ulazi u Prilog 2 (popis radne opreme)."
             />
-          </div>
-          <button className="btn btn-sm" onClick={dodajOpremu}>
-            + Dodaj
-          </button>
-        </div>
-      </div>
+            <CardBody className="flex flex-col gap-3">
+              <div className="flex flex-wrap gap-1.5">
+                {radnaOprema
+                  .filter((o) => posao.radnaOpremaIds.includes(o.id))
+                  .map((o) => (
+                    <span
+                      key={o.id}
+                      className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 py-0.5 pl-2 pr-0.5 text-[12px] text-slate-700"
+                    >
+                      {o.naziv}
+                      <Button
+                        variant="ghost"
+                        size="none"
+                        className="size-5 rounded text-slate-400 hover:text-slate-700"
+                        aria-label={`Ukloni ${o.naziv}`}
+                        onClick={() => toggleOpremaNaPoslu(posao.id, o.id)}
+                      >
+                        ×
+                      </Button>
+                    </span>
+                  ))}
+                {posao.radnaOpremaIds.length === 0 ? (
+                  <span className="text-[13px] text-slate-500">Nije odabrana radna oprema.</span>
+                ) : null}
+              </div>
+              <Combobox
+                opcije={radnaOprema
+                  .filter((o) => !posao.radnaOpremaIds.includes(o.id))
+                  .map((o) => ({ vrijednost: o.id, naziv: o.naziv }))}
+                dopustiSlobodanUnos
+                slobodanUnosLabel="Dodaj vlastitu opremu"
+                placeholder="Dodaj opremu — pretraži ili upiši novu…"
+                prazno="Nema opreme na popisu."
+                onOdaberi={(vrijednost, opcija) => {
+                  if (opcija) toggleOpremaNaPoslu(posao.id, vrijednost);
+                  else toggleOpremaNaPoslu(posao.id, addRadnaOpremaOpcija(vrijednost));
+                }}
+                trigger={
+                  <Button variant="secondary" size="sm" className="w-fit font-normal">
+                    <Wrench />
+                    Dodaj radnu opremu
+                  </Button>
+                }
+              />
+            </CardBody>
+          </Card>
 
-      <div className="card">
-        <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 400 }}>
-          <input
-            type="checkbox"
-            checked={posao.koristiRacunalo4h}
-            onChange={() => toggleKoristiRacunalo4h(posao.id)}
-          />
-          Posao uključuje rad na računalu 4 ili više sati dnevno
-        </label>
-        <p className="hint" style={{ marginTop: 6 }}>
-          Ako je označeno, u koraku "Prilozi" otvara se kratki checklist ergonomije rada na
-          računalu za ovaj posao.
-        </p>
+          <Card>
+            <CardBody>
+              <Switch
+                id="racunalo-4h"
+                checked={posao.koristiRacunalo4h}
+                onCheckedChange={() => toggleKoristiRacunalo4h(posao.id)}
+                label={
+                  <span className="flex items-center gap-1.5">
+                    <Monitor className="size-4 text-slate-400" />
+                    Rad na računalu 4 ili više sati dnevno
+                  </span>
+                }
+                hint="Otvara checklist ergonomije za ovaj posao u Prilogu 8."
+              />
+            </CardBody>
+          </Card>
+        </div>
       </div>
     </div>
+  );
+}
+
+function RizikRedak({
+  r,
+  fokusirano,
+  onUpdate,
+  onUkloni,
+}: {
+  r: Rizik;
+  fokusirano: boolean;
+  onUpdate: (patch: Partial<Rizik>) => void;
+  onUkloni: () => void;
+}) {
+  const ref = useFokusRef<HTMLLIElement>(fokusirano);
+  const [upitnikOtvoren, setUpitnikOtvoren] = useState(false);
+  const razina = izracunajRazinu(r.vjerojatnost, r.posljedica);
+
+  return (
+    <li
+      ref={ref}
+      className={cn(
+        "group rounded-md border border-slate-200 p-3",
+        fokusirano && KLASA_FOKUSA
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <Tooltip content={r.punaStaza}>
+            <span className="cell-wrap text-[13px] font-medium text-slate-900">{r.naziv}</span>
+          </Tooltip>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <RiskBadge razina={razina} />
+          <Button
+            variant="danger"
+            size="iconSm"
+            aria-label="Ukloni rizik"
+            className="opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
+            onClick={onUkloni}
+          >
+            <Trash2 />
+          </Button>
+        </div>
+      </div>
+
+      <div className="mt-2.5 flex flex-col gap-2.5">
+        <AutoTextarea
+          value={r.moguciDogadjaj}
+          onChange={(e) => onUpdate({ moguciDogadjaj: e.target.value })}
+          placeholder="Mogući neželjeni događaj — npr. nagnječenje prsta, posjekotina, pad s visine…"
+          aria-label="Mogući neželjeni događaj"
+        />
+
+        <MatricaVP
+          vjerojatnost={r.vjerojatnost}
+          posljedica={r.posljedica}
+          onPromjena={(v, p) => onUpdate({ vjerojatnost: v, posljedica: p })}
+        />
+
+        {r.kategorija === "napor" ? (
+          <div>
+            <Button variant="link" onClick={() => setUpitnikOtvoren((v) => !v)}>
+              {upitnikOtvoren
+                ? "Zatvori upitnik"
+                : "Procijeni vjerojatnost iz upitnika (psihosocijalni rizici)"}
+            </Button>
+            {upitnikOtvoren ? (
+              <PsihosocijalniUpitnik
+                onOdustani={() => setUpitnikOtvoren(false)}
+                onPrimijeni={(vjerojatnost: Vjerojatnost) => {
+                  onUpdate({ vjerojatnost });
+                  setUpitnikOtvoren(false);
+                }}
+              />
+            ) : null}
+          </div>
+        ) : null}
+
+        {razina === "srednji" || razina === "veliki" ? (
+          <p className="text-[12px] text-slate-500">
+            OZO, liječnički pregled i točka Pravilnika uređuju se u koraku 5 (Mjere i OZO).
+          </p>
+        ) : null}
+      </div>
+    </li>
   );
 }

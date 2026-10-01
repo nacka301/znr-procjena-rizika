@@ -20,6 +20,10 @@ const ERGONOMIJA_SVE_DA: Record<string, ErgonomijaOdgovor> = Object.fromEntries(
 // i predložena OZO/norme/točke Pravilnika su ilustrativne i označene za provjeru - vidi banner u
 // aplikaciji i DOMAIN_NOTES.md.
 
+// Verzija primjera. Kad se primjer promijeni, podigni ovaj broj: korisnici koji nisu ništa
+// mijenjali automatski dobivaju novi primjer pri sljedećem otvaranju (vidi src/state/store.ts).
+export const PRIMJER_VERZIJA = 3;
+
 export const DEMO_POSLODAVAC: Poslodavac = {
   naziv: "Primjer d.o.o.",
   djelatnost: "Proizvodnja i prodaja pekarskih proizvoda (pekara s trgovinom i dostavom)",
@@ -154,9 +158,9 @@ export const DEMO_POSLOVI: Posao[] = [
     rizici: [
       rizik("opasnost", ["5", "5.1"], 2, 2, "r6", {
         moguciDogadjaj: "opekline ruku i podlaktica pri vađenju lima iz peći",
-        ozoPrijedlog: "Toplinski otporne (termoizolirane) rukavice; zaštitna pregača",
-        ozoNorma:
-          "HRN EN 407 (zaštitne rukavice - toplinski rizici); HRN EN ISO 11612 (zaštitna odjeća/pregača - zaštita od topline i plamena)",
+        ozoPrijedlog:
+          "Zaštitne rukavice – toplinski rizici; Zaštitna odjeća – toplina i plamen",
+        ozoNorma: "HRN EN 407; HRN EN ISO 11612",
       }),
       rizik("stetnost", ["3", "3.4", "3.4.2"], 2, 2, "r7", {
         moguciDogadjaj: "toplinski udar ili dehidracija zbog rada u vrućem okruženju pored peći",
@@ -177,13 +181,13 @@ export const DEMO_POSLOVI: Posao[] = [
     rizici: [
       rizik("opasnost", ["1", "1.2"], 2, 2, "r9", {
         moguciDogadjaj: "nagnječenje ili zahvat prstiju pokretnim dijelovima miješalice",
-        ozoPrijedlog: "Zaštitna odjeća bez slobodnih dijelova; zaštitna obuća",
-        ozoNorma: "HRN EN ISO 20345 (zaštitna obuća)",
+        ozoPrijedlog: "Zaštitna obuća; Odjeća bez slobodnih dijelova",
+        ozoNorma: "HRN EN ISO 20345",
       }),
       rizik("napor", ["1", "1.1", "1.1.2"], 3, 1, "r10", {
         moguciDogadjaj: "bol u leđima i nogama zbog dugotrajnog stajanja pri miješenju tijesta",
         ozoPrijedlog: "Zaštitna obuća",
-        ozoNorma: "HRN EN ISO 20345 (zaštitna obuća)",
+        ozoNorma: "HRN EN ISO 20345",
       }),
     ],
   }),
@@ -195,14 +199,14 @@ export const DEMO_POSLOVI: Posao[] = [
     rizici: [
       rizik("opasnost", ["2", "2.2"], 2, 2, "r11", {
         moguciDogadjaj: "udarac robom koja padne s regala pri skladištenju",
-        ozoPrijedlog: "Zaštitna obuća; zaštitne rukavice",
-        ozoNorma: "HRN EN ISO 20345 (zaštitna obuća); HRN EN 388 (zaštitne rukavice - mehanički rizici)",
+        ozoPrijedlog: "Zaštitne rukavice – mehanički rizici; Zaštitna obuća",
+        ozoNorma: "HRN EN 388; HRN EN ISO 20345",
       }),
       rizik("napor", ["1", "1.2", "1.2.3"], 3, 2, "r12", {
         moguciDogadjaj: "ozljeda leđa pri ručnom podizanju i prenošenju tereta u skladištu",
-        ozoPrijedlog: "Zaštitne rukavice; zaštitna obuća",
-        ozoNorma: "HRN EN 388 (zaštitne rukavice - mehanički rizici); HRN EN ISO 20345 (zaštitna obuća)",
-        tockaPravilnika: "16 – teško fizičko naprezanje (PROVJERITI)",
+        ozoPrijedlog: "Zaštitne rukavice – mehanički rizici; Zaštitna obuća",
+        ozoNorma: "HRN EN 388; HRN EN ISO 20345",
+        tockaPravilnika: "16 – teško fizičko naprezanje",
         lijecnickiPregled: "Pregled kralježnice / lokomotornog sustava",
       }),
     ],
@@ -233,9 +237,8 @@ export const DEMO_POSLOVI: Posao[] = [
     rizici: [
       rizik("stetnost", ["1", "1.3"], 2, 2, "r15", {
         moguciDogadjaj: "iritacija kože i dišnih putova pri radu sa sredstvima za čišćenje",
-        ozoPrijedlog: "Rukavice za kemikalije; zaštita očiju po potrebi",
-        ozoNorma:
-          "HRN EN ISO 374-1 (zaštitne rukavice - kemikalije i mikroorganizmi); HRN EN 166 (zaštita očiju)",
+        ozoPrijedlog: "Zaštitne rukavice – kemikalije; Zaštitne naočale / vizir",
+        ozoNorma: "HRN EN ISO 374-1; HRN EN 166",
         tockaPravilnika: "18 ili sljedeće, PROVJERITI",
       }),
       rizik("opasnost", ["2", "2.1", "2.1.1"], 2, 1, "r16", {
@@ -294,7 +297,7 @@ export const DEMO_MJERE_PLANA: MjeraPlana[] = [
     posaoId: "p-pecenje",
     mjera:
       "Nabava toplinski otpornih rukavica i zaštitne pregače te provjera ispravnosti termoizolacije peći",
-    rok: "u roku 30 dana",
+    rok: "30 dana",
     odgovornaOsoba: "Direktor",
     kontrola: "Vizualna kontrola pri svakoj smjeni, evidencija u knjizi održavanja",
     periodika: "mjesečno",
@@ -303,7 +306,7 @@ export const DEMO_MJERE_PLANA: MjeraPlana[] = [
     id: "m2",
     posaoId: "p-dostava",
     mjera: "Dodatna edukacija defenzivne vožnje za vozače dostavnih vozila",
-    rok: "u roku 60 dana",
+    rok: "60 dana",
     odgovornaOsoba: "Direktor",
     kontrola: "Potvrda o završenoj edukaciji, godišnja provjera",
     periodika: "godišnje",
@@ -313,7 +316,7 @@ export const DEMO_MJERE_PLANA: MjeraPlana[] = [
     posaoId: "p-skladistenje",
     mjera:
       "Obuka o pravilnom ručnom podizanju tereta, nabava pomagala za podizanje (kolica, dizalice) i ograničenje maksimalne težine tereta koji se ručno nosi",
-    rok: "u roku 30 dana",
+    rok: "30 dana",
     odgovornaOsoba: "Voditelj skladišta",
     kontrola: "Provjera primjene pri redovnom obilasku skladišta, evidencija provedene obuke",
     periodika: "godišnje",

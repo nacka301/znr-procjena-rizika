@@ -381,3 +381,35 @@ export function nadjiNaziv(kategorija: KategorijaRizika, path: string[]): {
   }
   return { naziv: zadnjiLabel, punaStaza: dijelovi.join(" > ") };
 }
+
+export interface PrilogIIIOpcija {
+  kategorija: KategorijaRizika;
+  path: string[];
+  /** Kratki naziv zadnjeg čvora, npr. "Buka". */
+  naziv: string;
+  /** Puna staza za sivi tooltip, npr. "II. ŠTETNOSTI > 3 Fizikalne štetnosti > 3.1 Buka". */
+  punaStaza: string;
+}
+
+/**
+ * Ravni popis svih čvorova Priloga III za pretragu u jednom comboboxu (umjesto višerazinskih
+ * padajućih izbornika). Uključuje i čvorove s djecom, jer se i oni mogu odabrati kao rizik.
+ */
+export const PRILOG_III_OPCIJE: PrilogIIIOpcija[] = PRILOG_III.flatMap((grana) => {
+  const rezultat: PrilogIIIOpcija[] = [];
+  const obradi = (nodes: PrilogIIINode[], path: string[], staza: string[]) => {
+    for (const node of nodes) {
+      const noviPath = [...path, node.code];
+      const novaStaza = [...staza, `${node.code} ${node.label}`];
+      rezultat.push({
+        kategorija: grana.kategorija,
+        path: noviPath,
+        naziv: node.label,
+        punaStaza: [grana.naslov, ...novaStaza].join(" > "),
+      });
+      if (node.children?.length) obradi(node.children, noviPath, novaStaza);
+    }
+  };
+  obradi(grana.djeca, [], []);
+  return rezultat;
+});

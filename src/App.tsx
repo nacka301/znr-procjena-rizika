@@ -1,5 +1,17 @@
 import { useMemo, useState } from "react";
+import { FileStack, RotateCcw } from "lucide-react";
 import { useStore } from "./state/store";
+import { NavProvider, useNav } from "./state/navigacija";
+import { izracunajProvjere } from "./utils/provjere";
+import { izveziDocx } from "./utils/docxExport";
+import TopBar from "./components/TopBar";
+import Stepper from "./components/Stepper";
+import ProvjerePanel from "./components/ProvjerePanel";
+import { Button } from "./components/ui/button";
+import { Sheet } from "./components/ui/sheet";
+import { ToastProvider } from "./components/ui/toast";
+import { TooltipProvider } from "./components/ui/tooltip";
+import Step0Nadzor from "./steps/Step0Nadzor";
 import Step1Poslodavac from "./steps/Step1Poslodavac";
 import Step2RadnaMjesta from "./steps/Step2RadnaMjesta";
 import Step3Poslovi from "./steps/Step3Poslovi";
@@ -8,114 +20,146 @@ import Step5Mjere from "./steps/Step5Mjere";
 import Step6Prilozi from "./steps/Step6Prilozi";
 import Step7Pregled from "./steps/Step7Pregled";
 
-export interface StepDef {
-  key: string;
-  broj: number;
-  naslov: string;
-  podnaslov: string;
+function Sadrzaj() {
+  const { korak } = useNav();
+  switch (korak) {
+    case "nadzor":
+      return <Step0Nadzor />;
+    case "poslodavac":
+      return <Step1Poslodavac />;
+    case "radna-mjesta":
+      return <Step2RadnaMjesta />;
+    case "poslovi":
+      return <Step3Poslovi />;
+    case "analiza":
+      return <Step4Analiza />;
+    case "mjere":
+      return <Step5Mjere />;
+    case "prilozi":
+      return <Step6Prilozi />;
+    case "pregled":
+      return <Step7Pregled />;
+    default:
+      return null;
+  }
 }
 
-export const STEPS: StepDef[] = [
-  { key: "poslodavac", broj: 1, naslov: "Poslodavac", podnaslov: "Opći podaci" },
-  { key: "radna-mjesta", broj: 2, naslov: "Radna mjesta", podnaslov: "Popis i broj radnika" },
-  { key: "poslovi", broj: 3, naslov: "Poslovi", podnaslov: "Tko što radi" },
-  { key: "analiza", broj: 4, naslov: "Analiza posla", podnaslov: "Opasnosti, štetnosti, napori" },
-  { key: "mjere", broj: 5, naslov: "Mjere i OZO", podnaslov: "Plan mjera" },
-  { key: "prilozi", broj: 6, naslov: "Prilozi", podnaslov: "Automatski popisi" },
-  { key: "pregled", broj: 7, naslov: "Pregled dokumenta", podnaslov: "5 cjelina, izvoz" },
-];
-
-function App() {
-  const [aktivniKorak, setAktivniKorak] = useState<string>(STEPS[0].key);
+function Shell() {
   const poslodavac = useStore((s) => s.poslodavac);
+  const radnaMjesta = useStore((s) => s.radnaMjesta);
+  const poslovi = useStore((s) => s.poslovi);
+  const radnaOprema = useStore((s) => s.radnaOprema);
+  const mjerePlana = useStore((s) => s.mjerePlana);
+  const ispitivanja = useStore((s) => s.ispitivanja);
   const ucitajPrimjer = useStore((s) => s.ucitajPrimjer);
   const ocistiSve = useStore((s) => s.ocistiSve);
+  const { postaviKorak } = useNav();
 
-  const sadrzaj = useMemo(() => {
-    switch (aktivniKorak) {
-      case "poslodavac":
-        return <Step1Poslodavac />;
-      case "radna-mjesta":
-        return <Step2RadnaMjesta onNastavi={() => setAktivniKorak("poslovi")} />;
-      case "poslovi":
-        return <Step3Poslovi onOtvoriAnalizu={() => setAktivniKorak("analiza")} />;
-      case "analiza":
-        return <Step4Analiza />;
-      case "mjere":
-        return <Step5Mjere />;
-      case "prilozi":
-        return <Step6Prilozi />;
-      case "pregled":
-        return <Step7Pregled />;
-      default:
-        return null;
+  const [provjereOtvorene, setProvjereOtvorene] = useState(false);
+  const [izvozUTijeku, setIzvozUTijeku] = useState(false);
+
+  const provjere = useMemo(
+    () => izracunajProvjere({ poslodavac, radnaMjesta, poslovi, radnaOprema, mjerePlana, ispitivanja }),
+    [poslodavac, radnaMjesta, poslovi, radnaOprema, mjerePlana, ispitivanja]
+  );
+
+  async function handleIzvoz() {
+    setIzvozUTijeku(true);
+    try {
+      await izveziDocx({ poslodavac, radnaMjesta, poslovi, radnaOprema, mjerePlana, ispitivanja });
+    } finally {
+      setIzvozUTijeku(false);
     }
-  }, [aktivniKorak]);
+  }
 
-  function handlePocistiNovu() {
+  function handleNovaProcjena() {
     if (
       window.confirm(
         "Ovo će obrisati sve trenutne podatke (uključujući primjer) i započeti praznu procjenu. Nastaviti?"
       )
     ) {
       ocistiSve();
-      setAktivniKorak("poslodavac");
+      postaviKorak("poslodavac");
     }
   }
 
-  function handleUcitajPrimjer() {
-    ucitajPrimjer();
-    setAktivniKorak("poslodavac");
-  }
-
   return (
-    <div className="app-shell">
-      <aside className="app-sidebar">
-        <div className="app-brand">
-          <strong>Procjena rizika</strong>
-          <span>Prototip alata za ZNR stručnjake</span>
-        </div>
-        <nav className="step-nav">
-          {STEPS.map((s) => (
-            <button
-              key={s.key}
-              className={"step-nav-item" + (aktivniKorak === s.key ? " active" : "")}
-              onClick={() => setAktivniKorak(s.key)}
-            >
-              <span className="step-nav-number">{s.broj}</span>
-              <span className="step-nav-label">
-                {s.naslov}
-                <span className="step-nav-sub">{s.podnaslov}</span>
-              </span>
-            </button>
-          ))}
-        </nav>
-        <div className="app-sidebar-footer">
-          {poslodavac.isPrimjer && (
-            <button className="btn btn-sm" onClick={handlePocistiNovu}>
-              Počisti i počni novu
-            </button>
-          )}
-          {!poslodavac.isPrimjer && (
-            <button className="btn btn-sm" onClick={handleUcitajPrimjer}>
-              Učitaj primjer podataka
-            </button>
-          )}
-        </div>
-      </aside>
-      <main className="app-main">
-        {poslodavac.isPrimjer && (
-          <div className="demo-banner">
-            PRIMJER – nije stručna procjena. Svi podaci o poslodavcu "Primjer d.o.o." su izmišljeni
-            radi prikaza alata, uključujući ocjene vjerojatnosti i posljedice za svaki rizik — one
-            su ilustrativne (odabrane radi prikaza izračuna matrice), a ne stvarna stručna
-            procjena.
+    <div className="min-h-screen">
+      <TopBar
+        provjere={provjere}
+        onOtvoriProvjere={() => setProvjereOtvorene(true)}
+        onIzvoz={handleIzvoz}
+        izvozUTijeku={izvozUTijeku}
+      />
+
+      <div className="flex items-start">
+        {/* Lijevo: stepper 1-7 sa statusima */}
+        <aside className="no-print sticky top-14 hidden h-[calc(100vh-3.5rem)] w-[236px] shrink-0 flex-col justify-between overflow-y-auto border-r border-slate-200 bg-white p-3 md:flex">
+          <Stepper provjere={provjere} />
+          <div className="pt-4">
+            {poslodavac.isPrimjer ? (
+              <Button variant="secondary" size="sm" className="w-full" onClick={handleNovaProcjena}>
+                <FileStack />
+                Nova prazna procjena
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full"
+                onClick={() => {
+                  ucitajPrimjer();
+                  postaviKorak("nadzor");
+                }}
+              >
+                <RotateCcw />
+                Učitaj primjer
+              </Button>
+            )}
           </div>
-        )}
-        {sadrzaj}
-      </main>
+        </aside>
+
+        {/* Sredina: sadržaj, max 1120px */}
+        <main className="min-w-0 flex-1 px-4 py-6 md:px-6">
+          <div className="mx-auto w-full max-w-[1120px]">
+            <Sadrzaj />
+          </div>
+        </main>
+
+        {/* Desno od 1440px: panel Provjere uz sadržaj */}
+        <aside className="no-print sticky top-14 hidden h-[calc(100vh-3.5rem)] w-[304px] shrink-0 border-l border-slate-200 bg-white min-[1440px]:block">
+          <ProvjerePanel provjere={provjere} className="h-full" />
+        </aside>
+      </div>
+
+      {/* Ispod 1440px isti panel kao bočna ploča */}
+      <Sheet
+        open={provjereOtvorene}
+        onOpenChange={setProvjereOtvorene}
+        title="Provjere"
+        subtitle="Što nedostaje ili je nedosljedno. Klik vodi na mjesto u procjeni."
+        className="max-w-[420px]"
+      >
+        <div className="-mx-4 -my-4">
+          <ProvjerePanel
+            provjere={provjere}
+            onNakonKlika={() => setProvjereOtvorene(false)}
+            className="[&>div:first-child]:hidden"
+          />
+        </div>
+      </Sheet>
     </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <TooltipProvider>
+      <ToastProvider>
+        <NavProvider>
+          <Shell />
+        </NavProvider>
+      </ToastProvider>
+    </TooltipProvider>
+  );
+}

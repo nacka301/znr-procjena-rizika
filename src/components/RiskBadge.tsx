@@ -1,14 +1,30 @@
 import type { RazinaRizika } from "../types";
+import { Badge } from "./ui/badge";
+import { cn } from "../lib/utils";
 
 const LABEL: Record<RazinaRizika, string> = {
-  mali: "Mali rizik",
-  srednji: "Srednji rizik",
-  veliki: "Veliki rizik",
+  mali: "Mali",
+  srednji: "Srednji",
+  veliki: "Veliki",
 };
 
-export default function RiskBadge({ razina }: { razina: RazinaRizika | null }) {
+export default function RiskBadge({
+  razina,
+  className,
+}: {
+  razina: RazinaRizika | null;
+  className?: string;
+}) {
   if (!razina) {
-    return <span className="badge-risk nepoznato">Nije ocijenjeno</span>;
+    return (
+      <Badge tone="neutral" className={cn("border-dashed", className)}>
+        Nije ocijenjeno
+      </Badge>
+    );
   }
-  return <span className={`badge-risk ${razina}`}>{LABEL[razina]}</span>;
+  return (
+    <Badge tone={razina} className={className}>
+      {LABEL[razina]}
+    </Badge>
+  );
 }
