@@ -4,6 +4,7 @@ import { izracunajRazinu, razinaPosla } from "../types";
 import RiskBadge from "../components/RiskBadge";
 import { izveziDocx } from "../utils/docxExport";
 import { ERGONOMIJA_KATEGORIJE } from "../data/ergonomijaKategorije";
+import { jePosebniUvjeti, obrazlozenjePosebniUvjeti } from "../utils/posebniUvjeti";
 
 export default function Step7Pregled() {
   const poslodavac = useStore((s) => s.poslodavac);
@@ -48,7 +49,7 @@ export default function Step7Pregled() {
         stavke: p.rizici.filter(
           (r) =>
             izracunajRazinu(r.vjerojatnost, r.posljedica) === "veliki" &&
-            r.lijecnickiPregled.trim() !== ""
+            (r.lijecnickiPregled ?? "").trim() !== ""
         ),
       }))
       .filter((x) => x.stavke.length > 0);
@@ -72,7 +73,7 @@ export default function Step7Pregled() {
 
   const posloviRacunalo = useMemo(() => poslovi.filter((p) => p.koristiRacunalo4h), [poslovi]);
 
-  const posloviPosebniUvjeti = useMemo(() => poslovi.filter((p) => p.posebniUvjeti), [poslovi]);
+  const posloviPosebniUvjeti = useMemo(() => poslovi.filter(jePosebniUvjeti), [poslovi]);
 
   async function handleIzvoz() {
     setIzvozUTijeku(true);
@@ -492,7 +493,7 @@ export default function Step7Pregled() {
               {posloviPosebniUvjeti.map((p) => (
                 <tr key={p.id}>
                   <td>{p.naziv}</td>
-                  <td>{p.posebniUvjetiNapomena || "–"}</td>
+                  <td>{obrazlozenjePosebniUvjeti(p) || "–"}</td>
                 </tr>
               ))}
             </tbody>

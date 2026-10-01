@@ -38,6 +38,8 @@ export const OZO_NORME_KATALOG: string[] = [
   "HRN EN 361 (sigurnosni pojas/pribor za rad na visini)",
   "HRN EN 343 (zaštita od lošeg vremena)",
   "HRN EN ISO 11612 (zaštita od topline i plamena)",
+  "HRN EN 407 (zaštitne rukavice - toplinski rizici)",
+  "HRN EN ISO 374-1 (zaštitne rukavice - kemikalije i mikroorganizmi)",
 ];
 
 export const ISPITIVANJA_KATALOG: string[] = [

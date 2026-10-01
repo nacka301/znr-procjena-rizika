@@ -23,6 +23,9 @@ import {
 import { BASE_RADNA_OPREMA } from "../data/baseRadnaOprema";
 import type { RadnaOprema } from "../types";
 
+export const STORE_NAME = "znr-procjena-rizika";
+const STORE_VERSION = 1;
+
 const PRAZAN_POSLODAVAC: Poslodavac = {
   naziv: "",
   djelatnost: "",
@@ -30,6 +33,130 @@ const PRAZAN_POSLODAVAC: Poslodavac = {
   oib: "",
   isPrimjer: false,
 };
+
+// Normalizacija podataka učitanih iz localStorage: stariji zapisi (prije nego su dodana nova
+// polja u tipovima) ne smiju srušiti aplikaciju. Svako nedostajuće/pogrešno polje dobiva sigurnu
+// zadanu vrijednost (prazan string, prazan niz, null) umjesto da ostane undefined.
+
+function normalizaRizik(raw: unknown): Rizik {
+  const r = (raw ?? {}) as Partial<Rizik>;
+  return {
+    id: r.id ?? noviId("r"),
+    kategorija: r.kategorija ?? "opasnost",
+    path: Array.isArray(r.path) ? r.path : [],
+    naziv: r.naziv ?? "",
+    punaStaza: r.punaStaza ?? "",
+    vjerojatnost: r.vjerojatnost ?? null,
+    posljedica: r.posljedica ?? null,
+    moguciDogadjaj: r.moguciDogadjaj ?? "",
+    tockaPravilnika: r.tockaPravilnika ?? "",
+    ozoPrijedlog: r.ozoPrijedlog ?? "",
+    ozoNijePotrebna: r.ozoNijePotrebna ?? false,
+    ozoNorma: r.ozoNorma ?? "",
+    lijecnickiPregled: r.lijecnickiPregled ?? "",
+    napomena: r.napomena,
+  };
+}
+
+function normalizaErgonomijaOdgovor(raw: unknown): ErgonomijaOdgovor {
+  const o = (raw ?? {}) as Partial<ErgonomijaOdgovor>;
+  return {
+    zadovoljava: o.zadovoljava ?? null,
+    napomena: o.napomena ?? "",
+  };
+}
+
+function normalizaPosao(raw: unknown): Posao {
+  const p = (raw ?? {}) as Partial<Posao>;
+  const ergonomijaOdgovori: Record<string, ErgonomijaOdgovor> = {};
+  if (p.ergonomijaOdgovori && typeof p.ergonomijaOdgovori === "object") {
+    for (const [kljuc, vrijednost] of Object.entries(p.ergonomijaOdgovori)) {
+      ergonomijaOdgovori[kljuc] = normalizaErgonomijaOdgovor(vrijednost);
+    }
+  }
+  return {
+    id: p.id ?? noviId("p"),
+    naziv: p.naziv ?? "",
+    radnaMjestaIds: Array.isArray(p.radnaMjestaIds) ? p.radnaMjestaIds : [],
+    radnaOpremaIds: Array.isArray(p.radnaOpremaIds) ? p.radnaOpremaIds : [],
+    rizici: Array.isArray(p.rizici) ? p.rizici.map(normalizaRizik) : [],
+    posebniUvjeti: p.posebniUvjeti ?? false,
+    posebniUvjetiNapomena: p.posebniUvjetiNapomena ?? "",
+    koristiRacunalo4h: p.koristiRacunalo4h ?? false,
+    ergonomijaOdgovori,
+  };
+}
+
+function normalizaRadnoMjesto(raw: unknown): RadnoMjesto {
+  const rm = (raw ?? {}) as Partial<RadnoMjesto>;
+  return {
+    id: rm.id ?? noviId("rm"),
+    naziv: rm.naziv ?? "",
+    brojRadnika: typeof rm.brojRadnika === "number" ? rm.brojRadnika : 0,
+  };
+}
+
+function normalizaRadnaOprema(raw: unknown): RadnaOprema {
+  const o = (raw ?? {}) as Partial<RadnaOprema>;
+  return {
+    id: o.id ?? noviId("ro"),
+    naziv: o.naziv ?? "",
+    prilagodeno: o.prilagodeno ?? false,
+    periodPregledaMjeseci: o.periodPregledaMjeseci ?? null,
+    datumPosljednjegPregleda: o.datumPosljednjegPregleda ?? "",
+  };
+}
+
+function normalizaMjeraPlana(raw: unknown): MjeraPlana {
+  const m = (raw ?? {}) as Partial<MjeraPlana>;
+  return {
+    id: m.id ?? noviId("m"),
+    posaoId: m.posaoId ?? null,
+    mjera: m.mjera ?? "",
+    rok: m.rok ?? "",
+    odgovornaOsoba: m.odgovornaOsoba ?? "",
+    kontrola: m.kontrola ?? "",
+    periodika: m.periodika ?? "",
+  };
+}
+
+function normalizaIspitivanje(raw: unknown): Ispitivanje {
+  const i = (raw ?? {}) as Partial<Ispitivanje>;
+  return {
+    id: i.id ?? noviId("isp"),
+    naziv: i.naziv ?? "",
+    napomena: i.napomena ?? "",
+    periodMjeseci: i.periodMjeseci ?? null,
+    datumPosljednjeg: i.datumPosljednjeg ?? "",
+  };
+}
+
+function normalizaPoslodavac(raw: unknown): Poslodavac {
+  const p = (raw ?? {}) as Partial<Poslodavac>;
+  return {
+    naziv: p.naziv ?? "",
+    djelatnost: p.djelatnost ?? "",
+    lokacije: Array.isArray(p.lokacije) ? p.lokacije : [],
+    oib: p.oib ?? "",
+    isPrimjer: p.isPrimjer ?? false,
+  };
+}
+
+function normalizirajUcitanoStanje(raw: unknown): Partial<StoreState> {
+  if (!raw || typeof raw !== "object") return {};
+  const s = raw as Partial<StoreState>;
+  return {
+    poslodavac: s.poslodavac ? normalizaPoslodavac(s.poslodavac) : PRAZAN_POSLODAVAC,
+    radnaMjesta: Array.isArray(s.radnaMjesta) ? s.radnaMjesta.map(normalizaRadnoMjesto) : [],
+    poslovi: Array.isArray(s.poslovi) ? s.poslovi.map(normalizaPosao) : [],
+    radnaOprema: Array.isArray(s.radnaOprema) ? s.radnaOprema.map(normalizaRadnaOprema) : [],
+    mjerePlana: Array.isArray(s.mjerePlana) ? s.mjerePlana.map(normalizaMjeraPlana) : [],
+    ispitivanja: Array.isArray(s.ispitivanja) ? s.ispitivanja.map(normalizaIspitivanje) : [],
+    napomenePriloga:
+      s.napomenePriloga && typeof s.napomenePriloga === "object" ? s.napomenePriloga : {},
+    aktivniPosaoId: typeof s.aktivniPosaoId === "string" ? s.aktivniPosaoId : null,
+  };
+}
 
 interface StoreState {
   poslodavac: Poslodavac;
@@ -347,6 +474,14 @@ export const useStore = create<StoreState>()(
           aktivniPosaoId: null,
         }),
     }),
-    { name: "znr-procjena-rizika" }
+    {
+      name: STORE_NAME,
+      version: STORE_VERSION,
+      migrate: (persistedState) => normalizirajUcitanoStanje(persistedState),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...normalizirajUcitanoStanje(persistedState),
+      }),
+    }
   )
 );

@@ -123,7 +123,7 @@ export default function Step5Mjere() {
                 </label>
                 <input
                   type="text"
-                  className={!r.ozoPrijedlog.trim() ? "input-warn" : undefined}
+                  className={!(r.ozoPrijedlog ?? "").trim() ? "input-warn" : undefined}
                   value={r.ozoPrijedlog}
                   onChange={(e) =>
                     updateRizik(posao.id, r.id, { ozoPrijedlog: e.target.value })

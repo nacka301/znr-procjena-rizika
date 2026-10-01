@@ -16,6 +16,7 @@ import { saveAs } from "file-saver";
 import { izracunajRazinu, razinaPosla } from "../types";
 import type { Ispitivanje, MjeraPlana, Poslodavac, Posao, RadnaOprema, RadnoMjesto } from "../types";
 import { ERGONOMIJA_KATEGORIJE } from "../data/ergonomijaKategorije";
+import { jePosebniUvjeti, obrazlozenjePosebniUvjeti } from "./posebniUvjeti";
 
 const RAZINA_TEKST: Record<string, string> = {
   mali: "Mali rizik",
@@ -227,7 +228,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
       .filter((r) => r.kategorija === "stetnost" && (r.path[0] === "1" || r.path[0] === "3"))
       .map((r) => ({ posao: p, r }))
   );
-  const posloviPosebniUvjeti = poslovi.filter((p) => p.posebniUvjeti);
+  const posloviPosebniUvjeti = poslovi.filter(jePosebniUvjeti);
   const rasporedPoslova = radnaMjesta.flatMap((rm) =>
     poslovi
       .filter((p) => p.radnaMjestaIds.includes(rm.id))
@@ -321,7 +322,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
             .filter(
               (r) =>
                 izracunajRazinu(r.vjerojatnost, r.posljedica) === "veliki" &&
-                r.lijecnickiPregled.trim() !== ""
+                (r.lijecnickiPregled ?? "").trim() !== ""
             )
             .map((r) => redak([celija(p.naziv), celija(r.naziv), celija(r.lijecnickiPregled)]))
         ),
@@ -420,7 +421,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
           rows: [
             naslovTablice(["Posao", "Napomena"]),
             ...posloviPosebniUvjeti.map((p) =>
-              redak([celija(p.naziv), celija(p.posebniUvjetiNapomena || "-")])
+              redak([celija(p.naziv), celija(obrazlozenjePosebniUvjeti(p) || "-")])
             ),
           ],
         }),

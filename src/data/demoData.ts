@@ -1,6 +1,19 @@
-import type { Ispitivanje, MjeraPlana, Poslodavac, Posao, RadnoMjesto, Rizik } from "../types";
+import type {
+  ErgonomijaOdgovor,
+  Ispitivanje,
+  MjeraPlana,
+  Poslodavac,
+  Posao,
+  RadnoMjesto,
+  Rizik,
+} from "../types";
 import { nadjiNaziv } from "./prilogIII";
 import { BASE_RADNA_OPREMA } from "./baseRadnaOprema";
+import { ERGONOMIJA_KATEGORIJE } from "./ergonomijaKategorije";
+
+const ERGONOMIJA_SVE_DA: Record<string, ErgonomijaOdgovor> = Object.fromEntries(
+  ERGONOMIJA_KATEGORIJE.map((kategorija) => [kategorija, { zadovoljava: "da", napomena: "" }])
+);
 
 // PRIMJER, nije stručna procjena. Svi podaci su izmišljeni radi prikaza mogućnosti alata
 // (naročito zaslona "Poslovi" - M:N veza radno mjesto <-> posao). Ocjene vjerojatnosti/posljedice
@@ -72,6 +85,7 @@ function posao(
     koristiRacunalo4h?: boolean;
     posebniUvjeti?: boolean;
     posebniUvjetiNapomena?: string;
+    ergonomijaOdgovori?: Record<string, ErgonomijaOdgovor>;
   }
 ): Posao {
   return {
@@ -79,7 +93,7 @@ function posao(
     posebniUvjeti: p.posebniUvjeti ?? false,
     posebniUvjetiNapomena: p.posebniUvjetiNapomena ?? "",
     koristiRacunalo4h: p.koristiRacunalo4h ?? false,
-    ergonomijaOdgovori: {},
+    ergonomijaOdgovori: p.ergonomijaOdgovori ?? {},
   };
 }
 
@@ -90,6 +104,7 @@ export const DEMO_POSLOVI: Posao[] = [
     radnaMjestaIds: ["rm-direktor"],
     radnaOpremaIds: ["ro-racunalo"],
     koristiRacunalo4h: true,
+    ergonomijaOdgovori: ERGONOMIJA_SVE_DA,
     rizici: [
       rizik("napor", ["2", "2.4", "2.4.1"], 2, 2, "r1", {
         moguciDogadjaj: "psihički pritisak i stres zbog odgovornosti za poslovne rezultate i zaposlenike",
@@ -107,6 +122,7 @@ export const DEMO_POSLOVI: Posao[] = [
     radnaMjestaIds: ["rm-administrator", "rm-direktor"],
     radnaOpremaIds: ["ro-racunalo", "ro-printer"],
     koristiRacunalo4h: true,
+    ergonomijaOdgovori: ERGONOMIJA_SVE_DA,
     rizici: [
       rizik("napor", ["3"], 2, 1, "r3", {
         moguciDogadjaj: "zamor očiju i glavobolja pri dužem radu na računalu",
@@ -135,14 +151,12 @@ export const DEMO_POSLOVI: Posao[] = [
     naziv: "Rad na pekarskoj peći (pečenje)",
     radnaMjestaIds: ["rm-pekar"],
     radnaOpremaIds: ["ro-pekarska-pec"],
-    posebniUvjeti: true,
-    posebniUvjetiNapomena:
-      "Rad u vrućem okolišu uz pekarsku peć – točka 18 ili sljedeće, PROVJERITI (mikroklimatski uvjeti).",
     rizici: [
       rizik("opasnost", ["5", "5.1"], 2, 2, "r6", {
         moguciDogadjaj: "opekline ruku i podlaktica pri vađenju lima iz peći",
         ozoPrijedlog: "Toplinski otporne (termoizolirane) rukavice; zaštitna pregača",
-        ozoNorma: "HRN EN ISO 11612 (zaštita od topline i plamena)",
+        ozoNorma:
+          "HRN EN 407 (zaštitne rukavice - toplinski rizici); HRN EN ISO 11612 (zaštitna odjeća/pregača - zaštita od topline i plamena)",
       }),
       rizik("stetnost", ["3", "3.4", "3.4.2"], 2, 2, "r7", {
         moguciDogadjaj: "toplinski udar ili dehidracija zbog rada u vrućem okruženju pored peći",
@@ -168,8 +182,8 @@ export const DEMO_POSLOVI: Posao[] = [
       }),
       rizik("napor", ["1", "1.1", "1.1.2"], 3, 1, "r10", {
         moguciDogadjaj: "bol u leđima i nogama zbog dugotrajnog stajanja pri miješenju tijesta",
-        ozoPrijedlog: "Zaštitne rukavice; zaštitna obuća",
-        ozoNorma: "HRN EN 388 (zaštitne rukavice - mehanički rizici)",
+        ozoPrijedlog: "Zaštitna obuća",
+        ozoNorma: "HRN EN ISO 20345 (zaštitna obuća)",
       }),
     ],
   }),
@@ -178,9 +192,6 @@ export const DEMO_POSLOVI: Posao[] = [
     naziv: "Skladištenje i zaprimanje robe",
     radnaMjestaIds: ["rm-skladistar", "rm-vozac"],
     radnaOpremaIds: ["ro-paletni-viljuskar", "ro-hladnjaca"],
-    posebniUvjeti: true,
-    posebniUvjetiNapomena:
-      "Ručno dizanje i nošenje tereta pri skladištenju – točka 16, PROVJERITI (teško fizičko naprezanje: teret preko 25 kg muškarci / 15 kg žene).",
     rizici: [
       rizik("opasnost", ["2", "2.2"], 2, 2, "r11", {
         moguciDogadjaj: "udarac robom koja padne s regala pri skladištenju",
@@ -191,7 +202,7 @@ export const DEMO_POSLOVI: Posao[] = [
         moguciDogadjaj: "ozljeda leđa pri ručnom podizanju i prenošenju tereta u skladištu",
         ozoPrijedlog: "Zaštitne rukavice; zaštitna obuća",
         ozoNorma: "HRN EN 388 (zaštitne rukavice - mehanički rizici); HRN EN ISO 20345 (zaštitna obuća)",
-        tockaPravilnika: "16, PROVJERITI (teret preko 25 kg M / 15 kg Ž)",
+        tockaPravilnika: "16 – teško fizičko naprezanje (PROVJERITI)",
         lijecnickiPregled: "Pregled kralježnice / lokomotornog sustava",
       }),
     ],
@@ -219,15 +230,12 @@ export const DEMO_POSLOVI: Posao[] = [
     naziv: "Čišćenje i održavanje prostora",
     radnaMjestaIds: ["rm-cistac", "rm-pekar"],
     radnaOpremaIds: ["ro-usisavac"],
-    posebniUvjeti: true,
-    posebniUvjetiNapomena:
-      "Izloženost nadražljivcima pri čišćenju kemijskim sredstvima – točka 18 ili sljedeće, PROVJERITI.",
     rizici: [
       rizik("stetnost", ["1", "1.3"], 2, 2, "r15", {
         moguciDogadjaj: "iritacija kože i dišnih putova pri radu sa sredstvima za čišćenje",
         ozoPrijedlog: "Rukavice za kemikalije; zaštita očiju po potrebi",
         ozoNorma:
-          "HRN EN 166 (zaštita očiju) — norma za rukavice za kemikalije (npr. HRN EN ISO 374-1) nije na ugrađenom popisu, PROVJERITI",
+          "HRN EN ISO 374-1 (zaštitne rukavice - kemikalije i mikroorganizmi); HRN EN 166 (zaštita očiju)",
         tockaPravilnika: "18 ili sljedeće, PROVJERITI",
       }),
       rizik("opasnost", ["2", "2.1", "2.1.1"], 2, 1, "r16", {
@@ -239,6 +247,9 @@ export const DEMO_POSLOVI: Posao[] = [
 ];
 
 const DEMO_PERIODIKA: Record<string, { periodPregledaMjeseci: number; datumPosljednjegPregleda: string }> = {
+  "ro-racunalo": { periodPregledaMjeseci: 24, datumPosljednjegPregleda: "2025-04-10" },
+  "ro-printer": { periodPregledaMjeseci: 24, datumPosljednjegPregleda: "2025-04-10" },
+  "ro-blagajna": { periodPregledaMjeseci: 12, datumPosljednjegPregleda: "2025-08-01" },
   "ro-pekarska-pec": { periodPregledaMjeseci: 12, datumPosljednjegPregleda: "2025-11-15" },
   "ro-mikser": { periodPregledaMjeseci: 12, datumPosljednjegPregleda: "2025-09-10" },
   "ro-razvlakacica": { periodPregledaMjeseci: 12, datumPosljednjegPregleda: "2025-09-10" },

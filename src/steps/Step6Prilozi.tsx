@@ -6,6 +6,7 @@ import RiskBadge from "../components/RiskBadge";
 import PrijedlogChips from "../components/PrijedlogChips";
 import { ISPITIVANJA_KATALOG } from "../data/prijedloziKatalozi";
 import { ERGONOMIJA_KATEGORIJE } from "../data/ergonomijaKategorije";
+import { imaTockuPravilnika, jePosebniUvjeti, obrazlozenjePosebniUvjeti } from "../utils/posebniUvjeti";
 
 function NapomenaPolje({ naziv }: { naziv: string }) {
   const tekst = useStore((s) => s.napomenePriloga[naziv] ?? "");
@@ -85,26 +86,11 @@ export default function Step6Prilozi() {
         stavke: p.rizici.filter(
           (r) =>
             izracunajRazinu(r.vjerojatnost, r.posljedica) === "veliki" &&
-            r.lijecnickiPregled.trim() !== ""
+            (r.lijecnickiPregled ?? "").trim() !== ""
         ),
       }))
       .filter((x) => x.stavke.length > 0);
   }, [poslovi]);
-
-  const prijedloziPosebniUvjeti = useMemo(
-    () =>
-      poslovi.filter(
-        (p) => !p.posebniUvjeti && p.rizici.some((r) => r.tockaPravilnika.trim() !== "")
-      ),
-    [poslovi]
-  );
-
-  function opisTocke(p: (typeof poslovi)[number]): string {
-    return p.rizici
-      .filter((r) => r.tockaPravilnika.trim() !== "")
-      .map((r) => `${r.naziv} – točka ${r.tockaPravilnika}`)
-      .join("; ");
-  }
 
   const kemijskeIFizikalne = useMemo(() => {
     return poslovi.flatMap((p) =>
@@ -485,31 +471,11 @@ export default function Step6Prilozi() {
       <div className="card">
         <h2>9. Popis poslova s posebnim uvjetima rada</h2>
         <p className="hint">
-          Odluku o tome koji su poslovi s posebnim uvjetima rada donosi stručnjak.{" "}
-          <span className="tag-provjeriti">provjeriti</span>
+          Posao se automatski uključuje čim u analizi rizika ima upisanu "Točku Pravilnika"
+          (redak je tada označen i kvačica se ne može ručno isključiti — uklonite točku u koraku
+          "Analiza posla" ako posao ipak ne pripada ovdje). Stručnjak može ručno dodati i posao bez
+          upisane točke. <span className="tag-provjeriti">provjeriti</span>
         </p>
-        {prijedloziPosebniUvjeti.length > 0 && (
-          <div style={{ marginBottom: 12 }}>
-            <p className="hint">
-              Prijedlog na temelju upisane "Točke Pravilnika" u analizi rizika (klik dodaje na
-              popis ispod, zatim uredivo):
-            </p>
-            <div className="chip-row">
-              {prijedloziPosebniUvjeti.map((p) => (
-                <button
-                  key={p.id}
-                  className="btn btn-sm"
-                  onClick={() => {
-                    togglePosebniUvjeti(p.id);
-                    setPosebniUvjetiNapomena(p.id, opisTocke(p));
-                  }}
-                >
-                  + {p.naziv}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
         <table className="data-table">
           <thead>
             <tr>
@@ -519,28 +485,42 @@ export default function Step6Prilozi() {
             </tr>
           </thead>
           <tbody>
-            {poslovi.map((p) => (
-              <tr key={p.id}>
-                <td>
-                  <input
-                    type="checkbox"
-                    checked={p.posebniUvjeti}
-                    onChange={() => togglePosebniUvjeti(p.id)}
-                  />
-                </td>
-                <td>{p.naziv}</td>
-                <td>
-                  <input
-                    type="text"
-                    value={p.posebniUvjetiNapomena}
-                    disabled={!p.posebniUvjeti}
-                    onChange={(e) => setPosebniUvjetiNapomena(p.id, e.target.value)}
-                    style={{ width: "100%" }}
-                    placeholder={p.posebniUvjeti ? "obrazloženje" : ""}
-                  />
-                </td>
-              </tr>
-            ))}
+            {poslovi.map((p) => {
+              const automatski = imaTockuPravilnika(p);
+              const ukljucen = jePosebniUvjeti(p);
+              return (
+                <tr key={p.id}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={ukljucen}
+                      disabled={automatski}
+                      title={automatski ? "Automatski uključeno (upisana Točka Pravilnika)" : undefined}
+                      onChange={() => togglePosebniUvjeti(p.id)}
+                    />
+                  </td>
+                  <td>
+                    {p.naziv}
+                    {automatski && (
+                      <>
+                        {" "}
+                        <span className="tag-prijedlog">automatski</span>
+                      </>
+                    )}
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      value={ukljucen ? obrazlozenjePosebniUvjeti(p) : ""}
+                      disabled={!ukljucen}
+                      onChange={(e) => setPosebniUvjetiNapomena(p.id, e.target.value)}
+                      style={{ width: "100%" }}
+                      placeholder={ukljucen ? "obrazloženje" : ""}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
