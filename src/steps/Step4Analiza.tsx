@@ -179,6 +179,7 @@ export default function Step4Analiza() {
                 <div className="field-row">
                   <label>Vjerojatnost</label>
                   <select
+                    className={r.vjerojatnost === null ? "input-warn" : undefined}
                     value={r.vjerojatnost ?? ""}
                     onChange={(e) =>
                       updateRizik(posao.id, r.id, {
@@ -199,6 +200,7 @@ export default function Step4Analiza() {
                 <div className="field-row">
                   <label>Posljedica</label>
                   <select
+                    className={r.posljedica === null ? "input-warn" : undefined}
                     value={r.posljedica ?? ""}
                     onChange={(e) =>
                       updateRizik(posao.id, r.id, {

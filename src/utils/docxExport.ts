@@ -1,8 +1,10 @@
 import {
   AlignmentType,
   Document,
+  Header,
   HeadingLevel,
   Packer,
+  PageOrientation,
   Paragraph,
   Table,
   TableCell,
@@ -75,11 +77,13 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
     ],
   });
 
+  const ukupnoRadnika = radnaMjesta.reduce((zbroj, rm) => zbroj + rm.brojRadnika, 0);
+
   const cjelina1 = [
     new Paragraph({ heading: HeadingLevel.HEADING_1, text: "1. Opći podaci" }),
     new Paragraph({ text: `Naziv poslodavca: ${poslodavac.naziv}` }),
     new Paragraph({ text: `Djelatnost: ${poslodavac.djelatnost}` }),
-    new Paragraph({ text: `Ukupan broj radnika: ${poslodavac.ukupnoRadnika}` }),
+    new Paragraph({ text: `Ukupan broj radnika: ${ukupnoRadnika}` }),
     new Paragraph({ text: `Mjesta rada: ${poslodavac.lokacije.join("; ") || "-"}` }),
   ];
 
@@ -289,7 +293,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
           p.rizici
             .filter((r) => {
               const razina = izracunajRazinu(r.vjerojatnost, r.posljedica);
-              return razina === "srednji" || razina === "veliki";
+              return (razina === "srednji" || razina === "veliki") && !r.ozoNijePotrebna;
             })
             .map((r) =>
               redak([
@@ -297,7 +301,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
                 celija(r.naziv),
                 celija(RAZINA_TEKST[izracunajRazinu(r.vjerojatnost, r.posljedica)!]),
                 celija(ozoTekst(r, "(provjeriti)")),
-                celija(r.ozoNijePotrebna ? "-" : r.ozoNorma || "(provjeriti)"),
+                celija(r.ozoNorma || "(provjeriti)"),
               ])
             )
         ),
@@ -314,10 +318,12 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
         naslovTablice(["Posao", "Rizik", "Točke liječničkog pregleda"]),
         ...posloviVelikiRizik.flatMap((p) =>
           p.rizici
-            .filter((r) => izracunajRazinu(r.vjerojatnost, r.posljedica) === "veliki")
-            .map((r) =>
-              redak([celija(p.naziv), celija(r.naziv), celija(r.lijecnickiPregled || "(provjeriti)")])
+            .filter(
+              (r) =>
+                izracunajRazinu(r.vjerojatnost, r.posljedica) === "veliki" &&
+                r.lijecnickiPregled.trim() !== ""
             )
+            .map((r) => redak([celija(p.naziv), celija(r.naziv), celija(r.lijecnickiPregled)]))
         ),
       ],
     }),
@@ -420,9 +426,21 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
         }),
   ];
 
+  const zaglavlje = new Header({
+    children: [
+      new Paragraph({
+        children: [
+          new TextRun({ text: `Procjena rizika – ${poslodavac.naziv || "(bez naziva)"}`, bold: true }),
+        ],
+      }),
+    ],
+  });
+
   const doc = new Document({
     sections: [
       {
+        properties: {},
+        headers: { default: zaglavlje },
         children: [
           naslov,
           podnaslov,
@@ -430,12 +448,14 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
           ...cjelina1,
           new Paragraph({ text: "" }),
           ...cjelina2,
-          new Paragraph({ text: "" }),
-          ...cjelina3,
-          ...cjelina4,
-          new Paragraph({ text: "" }),
-          ...cjelina5,
         ],
+      },
+      {
+        properties: {
+          page: { size: { orientation: PageOrientation.LANDSCAPE } },
+        },
+        headers: { default: zaglavlje },
+        children: [...cjelina3, ...cjelina4, new Paragraph({ text: "" }), ...cjelina5],
       },
     ],
   });

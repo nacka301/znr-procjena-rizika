@@ -287,6 +287,11 @@ a {
   padding: 2px 8px;
 }
 
+.input-warn {
+  border-color: #d98324 !important;
+  background: #fff6ea !important;
+}
+
 .tag-prijedlog {
   display: inline-flex;
   align-items: center;
@@ -573,6 +578,15 @@ table.matrix-table th {
   .app-main {
     max-width: none;
     padding: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .card {
+    overflow-x: auto;
+  }
+  table.data-table:not(.matrix-table) {
+    min-width: 640px;
   }
 }
 

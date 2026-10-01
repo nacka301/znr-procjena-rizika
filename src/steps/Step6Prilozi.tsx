@@ -73,7 +73,7 @@ export default function Step6Prilozi() {
         posao: p,
         stavke: p.rizici
           .map((r) => ({ r, razina: izracunajRazinu(r.vjerojatnost, r.posljedica) }))
-          .filter((x) => x.razina === "srednji" || x.razina === "veliki"),
+          .filter((x) => (x.razina === "srednji" || x.razina === "veliki") && !x.r.ozoNijePotrebna),
       }))
       .filter((x) => x.stavke.length > 0);
   }, [poslovi]);
@@ -83,11 +83,28 @@ export default function Step6Prilozi() {
       .map((p) => ({
         posao: p,
         stavke: p.rizici.filter(
-          (r) => izracunajRazinu(r.vjerojatnost, r.posljedica) === "veliki"
+          (r) =>
+            izracunajRazinu(r.vjerojatnost, r.posljedica) === "veliki" &&
+            r.lijecnickiPregled.trim() !== ""
         ),
       }))
       .filter((x) => x.stavke.length > 0);
   }, [poslovi]);
+
+  const prijedloziPosebniUvjeti = useMemo(
+    () =>
+      poslovi.filter(
+        (p) => !p.posebniUvjeti && p.rizici.some((r) => r.tockaPravilnika.trim() !== "")
+      ),
+    [poslovi]
+  );
+
+  function opisTocke(p: (typeof poslovi)[number]): string {
+    return p.rizici
+      .filter((r) => r.tockaPravilnika.trim() !== "")
+      .map((r) => `${r.naziv} – točka ${r.tockaPravilnika}`)
+      .join("; ");
+  }
 
   const kemijskeIFizikalne = useMemo(() => {
     return poslovi.flatMap((p) =>
@@ -193,7 +210,7 @@ export default function Step6Prilozi() {
       <div className="card">
         <h2>3. Popis poslova za koje je određena OZO i popis OZO</h2>
         {ozoPoPoslovima.length === 0 && (
-          <div className="empty-state">Nema poslova sa srednjim ili velikim rizikom.</div>
+          <div className="empty-state">Nema poslova s određenom OZO.</div>
         )}
         {ozoPoPoslovima.map(({ posao, stavke }) => (
           <div key={posao.id} style={{ marginBottom: 10 }}>
@@ -218,16 +235,8 @@ export default function Step6Prilozi() {
                     <td>
                       <RiskBadge razina={razina} />
                     </td>
-                    <td>
-                      {r.ozoNijePotrebna ? (
-                        <span className="hint" style={{ fontStyle: "italic" }}>
-                          OZO nije potrebna
-                        </span>
-                      ) : (
-                        r.ozoPrijedlog || <span className="hint">(nije uneseno)</span>
-                      )}
-                    </td>
-                    <td>{r.ozoNijePotrebna ? "-" : r.ozoNorma || <span className="hint">(nije uneseno)</span>}</td>
+                    <td>{r.ozoPrijedlog || <span className="hint">–</span>}</td>
+                    <td>{r.ozoNorma || <span className="hint">–</span>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -240,7 +249,7 @@ export default function Step6Prilozi() {
       <div className="card">
         <h2>4. Popis potrebnih liječničkih pregleda</h2>
         {lijecnickiPregledi.length === 0 && (
-          <div className="empty-state">Nema poslova s velikim rizikom.</div>
+          <div className="empty-state">Nema poslova s upisanim liječničkim pregledom.</div>
         )}
         {lijecnickiPregledi.map(({ posao, stavke }) => (
           <div key={posao.id} style={{ marginBottom: 10 }}>
@@ -259,7 +268,7 @@ export default function Step6Prilozi() {
                 {stavke.map((r) => (
                   <tr key={r.id}>
                     <td>{r.naziv}</td>
-                    <td>{r.lijecnickiPregled || <span className="hint">(nije uneseno)</span>}</td>
+                    <td>{r.lijecnickiPregled || <span className="hint">–</span>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -479,6 +488,28 @@ export default function Step6Prilozi() {
           Odluku o tome koji su poslovi s posebnim uvjetima rada donosi stručnjak.{" "}
           <span className="tag-provjeriti">provjeriti</span>
         </p>
+        {prijedloziPosebniUvjeti.length > 0 && (
+          <div style={{ marginBottom: 12 }}>
+            <p className="hint">
+              Prijedlog na temelju upisane "Točke Pravilnika" u analizi rizika (klik dodaje na
+              popis ispod, zatim uredivo):
+            </p>
+            <div className="chip-row">
+              {prijedloziPosebniUvjeti.map((p) => (
+                <button
+                  key={p.id}
+                  className="btn btn-sm"
+                  onClick={() => {
+                    togglePosebniUvjeti(p.id);
+                    setPosebniUvjetiNapomena(p.id, opisTocke(p));
+                  }}
+                >
+                  + {p.naziv}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <table className="data-table">
           <thead>
             <tr>

@@ -3,6 +3,8 @@ import { useStore } from "../state/store";
 export default function Step1Poslodavac() {
   const poslodavac = useStore((s) => s.poslodavac);
   const setPoslodavac = useStore((s) => s.setPoslodavac);
+  const radnaMjesta = useStore((s) => s.radnaMjesta);
+  const ukupnoRadnika = radnaMjesta.reduce((zbroj, rm) => zbroj + rm.brojRadnika, 0);
 
   function updateLokacija(index: number, value: string) {
     const nove = [...poslodavac.lokacije];
@@ -69,15 +71,13 @@ export default function Step1Poslodavac() {
           <input
             id="broj-radnika"
             type="number"
-            min={0}
-            style={{ maxWidth: 160 }}
-            value={poslodavac.ukupnoRadnika}
-            onChange={(e) =>
-              setPoslodavac({ ukupnoRadnika: Number(e.target.value) || 0 })
-            }
+            value={ukupnoRadnika}
+            disabled
+            style={{ maxWidth: 160, background: "var(--color-surface-muted)" }}
           />
           <span className="hint">
-            Informativno polje — stvarni broj po radnim mjestima unosi se u koraku 2.
+            Izračunato automatski kao zbroj broja radnika po radnim mjestima (korak 2) — uređuje
+            se ondje.
           </span>
         </div>
       </div>

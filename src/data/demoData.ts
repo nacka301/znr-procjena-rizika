@@ -1,15 +1,16 @@
-import type { MjeraPlana, Poslodavac, Posao, RadnoMjesto, Rizik } from "../types";
+import type { Ispitivanje, MjeraPlana, Poslodavac, Posao, RadnoMjesto, Rizik } from "../types";
 import { nadjiNaziv } from "./prilogIII";
 import { BASE_RADNA_OPREMA } from "./baseRadnaOprema";
 
 // PRIMJER, nije stručna procjena. Svi podaci su izmišljeni radi prikaza mogućnosti alata
-// (naročito zaslona "Poslovi" - M:N veza radno mjesto <-> posao).
+// (naročito zaslona "Poslovi" - M:N veza radno mjesto <-> posao). Ocjene vjerojatnosti/posljedice
+// i predložena OZO/norme/točke Pravilnika su ilustrativne i označene za provjeru - vidi banner u
+// aplikaciji i DOMAIN_NOTES.md.
 
 export const DEMO_POSLODAVAC: Poslodavac = {
   naziv: "Primjer d.o.o.",
   djelatnost: "Proizvodnja i prodaja pekarskih proizvoda (pekara s trgovinom i dostavom)",
   lokacije: ["Pekara i prodavaonica, Zagreb", "Skladište sirovina, Zagreb"],
-  ukupnoRadnika: 12,
   oib: "",
   isPrimjer: true,
 };
@@ -24,12 +25,25 @@ export const DEMO_RADNA_MJESTA: RadnoMjesto[] = [
   { id: "rm-administrator", naziv: "Administrator", brojRadnika: 1 },
 ];
 
+type RizikDopuna = Partial<
+  Pick<
+    Rizik,
+    | "moguciDogadjaj"
+    | "tockaPravilnika"
+    | "ozoPrijedlog"
+    | "ozoNijePotrebna"
+    | "ozoNorma"
+    | "lijecnickiPregled"
+  >
+>;
+
 function rizik(
   kategorija: Rizik["kategorija"],
   path: string[],
   vjerojatnost: Rizik["vjerojatnost"],
   posljedica: Rizik["posljedica"],
-  id: string
+  id: string,
+  dopuna: RizikDopuna = {}
 ): Rizik {
   const { naziv, punaStaza } = nadjiNaziv(kategorija, path);
   return {
@@ -46,6 +60,7 @@ function rizik(
     ozoNijePotrebna: false,
     ozoNorma: "",
     lijecnickiPregled: "",
+    ...dopuna,
   };
 }
 
@@ -53,12 +68,16 @@ function posao(
   p: Omit<
     Posao,
     "posebniUvjeti" | "posebniUvjetiNapomena" | "koristiRacunalo4h" | "ergonomijaOdgovori"
-  > & { koristiRacunalo4h?: boolean }
+  > & {
+    koristiRacunalo4h?: boolean;
+    posebniUvjeti?: boolean;
+    posebniUvjetiNapomena?: string;
+  }
 ): Posao {
   return {
     ...p,
-    posebniUvjeti: false,
-    posebniUvjetiNapomena: "",
+    posebniUvjeti: p.posebniUvjeti ?? false,
+    posebniUvjetiNapomena: p.posebniUvjetiNapomena ?? "",
     koristiRacunalo4h: p.koristiRacunalo4h ?? false,
     ergonomijaOdgovori: {},
   };
@@ -72,8 +91,14 @@ export const DEMO_POSLOVI: Posao[] = [
     radnaOpremaIds: ["ro-racunalo"],
     koristiRacunalo4h: true,
     rizici: [
-      rizik("napor", ["2", "2.4", "2.4.1"], 2, 2, "r1"),
-      rizik("napor", ["2", "2.7", "2.7.1"], 2, 1, "r2"),
+      rizik("napor", ["2", "2.4", "2.4.1"], 2, 2, "r1", {
+        moguciDogadjaj: "psihički pritisak i stres zbog odgovornosti za poslovne rezultate i zaposlenike",
+        ozoNijePotrebna: true,
+      }),
+      rizik("napor", ["2", "2.7", "2.7.1"], 2, 1, "r2", {
+        moguciDogadjaj: "umor i pad koncentracije zbog opsega poslovnih obaveza",
+        ozoNijePotrebna: true,
+      }),
     ],
   }),
   posao({
@@ -82,7 +107,12 @@ export const DEMO_POSLOVI: Posao[] = [
     radnaMjestaIds: ["rm-administrator", "rm-direktor"],
     radnaOpremaIds: ["ro-racunalo", "ro-printer"],
     koristiRacunalo4h: true,
-    rizici: [rizik("napor", ["3"], 2, 1, "r3")],
+    rizici: [
+      rizik("napor", ["3"], 2, 1, "r3", {
+        moguciDogadjaj: "zamor očiju i glavobolja pri dužem radu na računalu",
+        ozoNijePotrebna: true,
+      }),
+    ],
   }),
   posao({
     id: "p-prodaja",
@@ -90,8 +120,14 @@ export const DEMO_POSLOVI: Posao[] = [
     radnaMjestaIds: ["rm-prodavac"],
     radnaOpremaIds: ["ro-blagajna"],
     rizici: [
-      rizik("napor", ["1", "1.1", "1.1.2"], 2, 1, "r4"),
-      rizik("napor", ["2", "2.7", "2.7.6"], 2, 1, "r5"),
+      rizik("napor", ["1", "1.1", "1.1.2"], 2, 1, "r4", {
+        moguciDogadjaj: "bol u leđima i nogama zbog dugotrajnog stajanja na prodajnom mjestu",
+        ozoNijePotrebna: true,
+      }),
+      rizik("napor", ["2", "2.7", "2.7.6"], 2, 1, "r5", {
+        moguciDogadjaj: "psihičko opterećenje pri komunikaciji sa zahtjevnim strankama",
+        ozoNijePotrebna: true,
+      }),
     ],
   }),
   posao({
@@ -99,10 +135,24 @@ export const DEMO_POSLOVI: Posao[] = [
     naziv: "Rad na pekarskoj peći (pečenje)",
     radnaMjestaIds: ["rm-pekar"],
     radnaOpremaIds: ["ro-pekarska-pec"],
+    posebniUvjeti: true,
+    posebniUvjetiNapomena:
+      "Rad u vrućem okolišu uz pekarsku peć – točka 18 ili sljedeće, PROVJERITI (mikroklimatski uvjeti).",
     rizici: [
-      rizik("opasnost", ["5", "5.1"], 2, 2, "r6"),
-      rizik("stetnost", ["3", "3.4", "3.4.2"], 2, 2, "r7"),
-      rizik("napor", ["1", "1.2", "1.2.3"], 2, 1, "r8"),
+      rizik("opasnost", ["5", "5.1"], 2, 2, "r6", {
+        moguciDogadjaj: "opekline ruku i podlaktica pri vađenju lima iz peći",
+        ozoPrijedlog: "Toplinski otporne (termoizolirane) rukavice; zaštitna pregača",
+        ozoNorma: "HRN EN ISO 11612 (zaštita od topline i plamena)",
+      }),
+      rizik("stetnost", ["3", "3.4", "3.4.2"], 2, 2, "r7", {
+        moguciDogadjaj: "toplinski udar ili dehidracija zbog rada u vrućem okruženju pored peći",
+        ozoNijePotrebna: true,
+        tockaPravilnika: "18 ili sljedeće, PROVJERITI",
+      }),
+      rizik("napor", ["1", "1.2", "1.2.3"], 2, 1, "r8", {
+        moguciDogadjaj: "ozljeda leđa pri podizanju vreća brašna i kalupa s pecivom",
+        ozoNijePotrebna: true,
+      }),
     ],
   }),
   posao({
@@ -111,8 +161,16 @@ export const DEMO_POSLOVI: Posao[] = [
     radnaMjestaIds: ["rm-pekar"],
     radnaOpremaIds: ["ro-mikser", "ro-razvlakacica"],
     rizici: [
-      rizik("opasnost", ["1", "1.2"], 2, 2, "r9"),
-      rizik("napor", ["1", "1.1", "1.1.2"], 3, 1, "r10"),
+      rizik("opasnost", ["1", "1.2"], 2, 2, "r9", {
+        moguciDogadjaj: "nagnječenje ili zahvat prstiju pokretnim dijelovima miješalice",
+        ozoPrijedlog: "Zaštitna odjeća bez slobodnih dijelova; zaštitna obuća",
+        ozoNorma: "HRN EN ISO 20345 (zaštitna obuća)",
+      }),
+      rizik("napor", ["1", "1.1", "1.1.2"], 3, 1, "r10", {
+        moguciDogadjaj: "bol u leđima i nogama zbog dugotrajnog stajanja pri miješenju tijesta",
+        ozoPrijedlog: "Zaštitne rukavice; zaštitna obuća",
+        ozoNorma: "HRN EN 388 (zaštitne rukavice - mehanički rizici)",
+      }),
     ],
   }),
   posao({
@@ -120,9 +178,22 @@ export const DEMO_POSLOVI: Posao[] = [
     naziv: "Skladištenje i zaprimanje robe",
     radnaMjestaIds: ["rm-skladistar", "rm-vozac"],
     radnaOpremaIds: ["ro-paletni-viljuskar", "ro-hladnjaca"],
+    posebniUvjeti: true,
+    posebniUvjetiNapomena:
+      "Ručno dizanje i nošenje tereta pri skladištenju – točka 16, PROVJERITI (teško fizičko naprezanje: teret preko 25 kg muškarci / 15 kg žene).",
     rizici: [
-      rizik("opasnost", ["2", "2.2"], 2, 2, "r11"),
-      rizik("napor", ["1", "1.2", "1.2.3"], 3, 2, "r12"),
+      rizik("opasnost", ["2", "2.2"], 2, 2, "r11", {
+        moguciDogadjaj: "udarac robom koja padne s regala pri skladištenju",
+        ozoPrijedlog: "Zaštitna obuća; zaštitne rukavice",
+        ozoNorma: "HRN EN ISO 20345 (zaštitna obuća); HRN EN 388 (zaštitne rukavice - mehanički rizici)",
+      }),
+      rizik("napor", ["1", "1.2", "1.2.3"], 3, 2, "r12", {
+        moguciDogadjaj: "ozljeda leđa pri ručnom podizanju i prenošenju tereta u skladištu",
+        ozoPrijedlog: "Zaštitne rukavice; zaštitna obuća",
+        ozoNorma: "HRN EN 388 (zaštitne rukavice - mehanički rizici); HRN EN ISO 20345 (zaštitna obuća)",
+        tockaPravilnika: "16, PROVJERITI (teret preko 25 kg M / 15 kg Ž)",
+        lijecnickiPregled: "Pregled kralježnice / lokomotornog sustava",
+      }),
     ],
   }),
   posao({
@@ -131,8 +202,16 @@ export const DEMO_POSLOVI: Posao[] = [
     radnaMjestaIds: ["rm-vozac"],
     radnaOpremaIds: ["ro-dostavno-vozilo"],
     rizici: [
-      rizik("opasnost", ["1", "1.3", "1.3.1"], 2, 3, "r13"),
-      rizik("napor", ["2", "2.4", "2.4.2"], 2, 2, "r14"),
+      rizik("opasnost", ["1", "1.3", "1.3.1"], 2, 3, "r13", {
+        moguciDogadjaj: "prometna nesreća pri dostavi robe vozilom",
+        ozoNijePotrebna: true,
+        lijecnickiPregled: "vozački pregled (propis o sigurnosti prometa), PROVJERITI",
+      }),
+      rizik("napor", ["2", "2.4", "2.4.2"], 2, 2, "r14", {
+        moguciDogadjaj:
+          "stres i umor zbog odgovornosti za sigurnu vožnju i poštivanje rokova dostave",
+        ozoNijePotrebna: true,
+      }),
     ],
   }),
   posao({
@@ -140,28 +219,70 @@ export const DEMO_POSLOVI: Posao[] = [
     naziv: "Čišćenje i održavanje prostora",
     radnaMjestaIds: ["rm-cistac", "rm-pekar"],
     radnaOpremaIds: ["ro-usisavac"],
+    posebniUvjeti: true,
+    posebniUvjetiNapomena:
+      "Izloženost nadražljivcima pri čišćenju kemijskim sredstvima – točka 18 ili sljedeće, PROVJERITI.",
     rizici: [
-      rizik("stetnost", ["1", "1.3"], 2, 2, "r15"),
-      rizik("opasnost", ["2", "2.1", "2.1.1"], 2, 1, "r16"),
+      rizik("stetnost", ["1", "1.3"], 2, 2, "r15", {
+        moguciDogadjaj: "iritacija kože i dišnih putova pri radu sa sredstvima za čišćenje",
+        ozoPrijedlog: "Rukavice za kemikalije; zaštita očiju po potrebi",
+        ozoNorma:
+          "HRN EN 166 (zaštita očiju) — norma za rukavice za kemikalije (npr. HRN EN ISO 374-1) nije na ugrađenom popisu, PROVJERITI",
+        tockaPravilnika: "18 ili sljedeće, PROVJERITI",
+      }),
+      rizik("opasnost", ["2", "2.1", "2.1.1"], 2, 1, "r16", {
+        moguciDogadjaj: "pad na mokroj ili skliskoj podlozi tijekom čišćenja",
+        ozoNijePotrebna: true,
+      }),
     ],
   }),
 ];
 
 const DEMO_PERIODIKA: Record<string, { periodPregledaMjeseci: number; datumPosljednjegPregleda: string }> = {
   "ro-pekarska-pec": { periodPregledaMjeseci: 12, datumPosljednjegPregleda: "2025-11-15" },
+  "ro-mikser": { periodPregledaMjeseci: 12, datumPosljednjegPregleda: "2025-09-10" },
+  "ro-razvlakacica": { periodPregledaMjeseci: 12, datumPosljednjegPregleda: "2025-09-10" },
   "ro-paletni-viljuskar": { periodPregledaMjeseci: 6, datumPosljednjegPregleda: "2026-03-01" },
+  "ro-hladnjaca": { periodPregledaMjeseci: 24, datumPosljednjegPregleda: "2025-06-15" },
   "ro-dostavno-vozilo": { periodPregledaMjeseci: 12, datumPosljednjegPregleda: "2026-01-20" },
+  "ro-usisavac": { periodPregledaMjeseci: 12, datumPosljednjegPregleda: "2025-05-20" },
 };
 
 export const DEMO_RADNA_OPREMA = BASE_RADNA_OPREMA.map((o) =>
   DEMO_PERIODIKA[o.id] ? { ...o, ...DEMO_PERIODIKA[o.id] } : o
 );
 
+export const DEMO_ISPITIVANJA: Ispitivanje[] = [
+  {
+    id: "isp-el",
+    naziv: "Ispitivanje električnih instalacija",
+    napomena: "cjelokupna instalacija pekare i skladišta — rok nije pouzdano preuzet iz propisa, PROVJERITI",
+    periodMjeseci: null,
+    datumPosljednjeg: "",
+  },
+  {
+    id: "isp-oprema",
+    naziv: "Ispitivanje radne opreme",
+    napomena:
+      "pekarska peć, miješalica za tijesto, viličar ručni (paletni) — rok nije pouzdano preuzet iz propisa, PROVJERITI",
+    periodMjeseci: null,
+    datumPosljednjeg: "",
+  },
+  {
+    id: "isp-mikroklima",
+    naziv: "Ispitivanje mikroklime",
+    napomena: "prostor pekarnice uz peć — rok nije pouzdano preuzet iz propisa, PROVJERITI",
+    periodMjeseci: null,
+    datumPosljednjeg: "",
+  },
+];
+
 export const DEMO_MJERE_PLANA: MjeraPlana[] = [
   {
     id: "m1",
     posaoId: "p-pecenje",
-    mjera: "Nabava toplinski otpornih rukavica i provjera ispravnosti termoizolacije peći",
+    mjera:
+      "Nabava toplinski otpornih rukavica i zaštitne pregače te provjera ispravnosti termoizolacije peći",
     rok: "u roku 30 dana",
     odgovornaOsoba: "Direktor",
     kontrola: "Vizualna kontrola pri svakoj smjeni, evidencija u knjizi održavanja",
@@ -174,6 +295,16 @@ export const DEMO_MJERE_PLANA: MjeraPlana[] = [
     rok: "u roku 60 dana",
     odgovornaOsoba: "Direktor",
     kontrola: "Potvrda o završenoj edukaciji, godišnja provjera",
+    periodika: "godišnje",
+  },
+  {
+    id: "m3",
+    posaoId: "p-skladistenje",
+    mjera:
+      "Obuka o pravilnom ručnom podizanju tereta, nabava pomagala za podizanje (kolica, dizalice) i ograničenje maksimalne težine tereta koji se ručno nosi",
+    rok: "u roku 30 dana",
+    odgovornaOsoba: "Voditelj skladišta",
+    kontrola: "Provjera primjene pri redovnom obilasku skladišta, evidencija provedene obuke",
     periodika: "godišnje",
   },
 ];

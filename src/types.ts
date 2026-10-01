@@ -10,7 +10,6 @@ export interface Poslodavac {
   naziv: string;
   djelatnost: string;
   lokacije: string[];
-  ukupnoRadnika: number;
   oib?: string;
   isPrimjer: boolean;
 }

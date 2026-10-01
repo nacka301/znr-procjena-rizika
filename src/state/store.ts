@@ -13,6 +13,7 @@ import type {
 import { noviId } from "../utils/id";
 import { nadjiNaziv } from "../data/prilogIII";
 import {
+  DEMO_ISPITIVANJA,
   DEMO_MJERE_PLANA,
   DEMO_POSLODAVAC,
   DEMO_POSLOVI,
@@ -26,7 +27,6 @@ const PRAZAN_POSLODAVAC: Poslodavac = {
   naziv: "",
   djelatnost: "",
   lokacije: [],
-  ukupnoRadnika: 0,
   oib: "",
   isPrimjer: false,
 };
@@ -91,7 +91,7 @@ export const useStore = create<StoreState>()(
       poslovi: DEMO_POSLOVI,
       radnaOprema: DEMO_RADNA_OPREMA,
       mjerePlana: DEMO_MJERE_PLANA,
-      ispitivanja: [],
+      ispitivanja: DEMO_ISPITIVANJA,
       napomenePriloga: {},
       aktivniPosaoId: DEMO_POSLOVI[0]?.id ?? null,
       setAktivniPosaoId: (id) => set({ aktivniPosaoId: id }),
@@ -331,7 +331,7 @@ export const useStore = create<StoreState>()(
           poslovi: DEMO_POSLOVI,
           radnaOprema: DEMO_RADNA_OPREMA,
           mjerePlana: DEMO_MJERE_PLANA,
-          ispitivanja: [],
+          ispitivanja: DEMO_ISPITIVANJA,
           napomenePriloga: {},
           aktivniPosaoId: DEMO_POSLOVI[0]?.id ?? null,
         }),
