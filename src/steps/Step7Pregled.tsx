@@ -133,24 +133,28 @@ export default function Step7Pregled() {
                 <thead>
                   <tr>
                     <th>Opasnost / štetnost / napor</th>
+                    <th>Mogući neželjeni događaj</th>
                     <th>V</th>
                     <th>P</th>
                     <th>Razina</th>
                     <th>OZO</th>
                     <th>Liječnički pregled</th>
+                    <th>Točka Pravilnika</th>
                   </tr>
                 </thead>
                 <tbody>
                   {p.rizici.map((r) => (
                     <tr key={r.id}>
                       <td>{r.punaStaza}</td>
+                      <td>{r.moguciDogadjaj || "-"}</td>
                       <td>{r.vjerojatnost ?? "-"}</td>
                       <td>{r.posljedica ?? "-"}</td>
                       <td>
                         <RiskBadge razina={izracunajRazinu(r.vjerojatnost, r.posljedica)} />
                       </td>
-                      <td>{r.ozoPrijedlog || "-"}</td>
+                      <td>{r.ozoNijePotrebna ? "OZO nije potrebna" : r.ozoPrijedlog || "-"}</td>
                       <td>{r.lijecnickiPregled || "-"}</td>
+                      <td>{r.tockaPravilnika || "-"}</td>
                     </tr>
                   ))}
                 </tbody>

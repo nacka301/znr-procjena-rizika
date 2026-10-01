@@ -39,6 +39,8 @@ export interface Rizik {
   punaStaza: string; // "1. Mehaničke opasnosti > 1.1 Alati > 1.1.1 Ručni"
   vjerojatnost: Vjerojatnost | null;
   posljedica: Posljedica | null;
+  moguciDogadjaj: string;
+  tockaPravilnika: string; // točka čl. 3 Pravilnika o poslovima s posebnim uvjetima rada (NN 5/84), ako primjenjivo
   ozoPrijedlog: string;
   ozoNijePotrebna: boolean;
   lijecnickiPregled: string;

@@ -160,7 +160,19 @@ export default function Step4Analiza() {
                 </div>
               </div>
 
-              <div className="field-grid" style={{ marginTop: 10 }}>
+              <div className="field-row" style={{ marginTop: 10 }}>
+                <label>Mogući neželjeni događaj</label>
+                <input
+                  type="text"
+                  value={r.moguciDogadjaj}
+                  onChange={(e) =>
+                    updateRizik(posao.id, r.id, { moguciDogadjaj: e.target.value })
+                  }
+                  placeholder="npr. nagnječenje prsta, posjekotina, pad s visine…"
+                />
+              </div>
+
+              <div className="field-grid">
                 <div className="field-row">
                   <label>Vjerojatnost</label>
                   <select
@@ -201,6 +213,22 @@ export default function Step4Analiza() {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div className="field-row">
+                <label>
+                  Točka Pravilnika (čl. 3, NN 5/84){" "}
+                  <span className="tag-provjeriti">provjeriti</span>
+                </label>
+                <input
+                  type="text"
+                  value={r.tockaPravilnika}
+                  onChange={(e) =>
+                    updateRizik(posao.id, r.id, { tockaPravilnika: e.target.value })
+                  }
+                  placeholder="npr. 1, 2, 18 — upišite broj točke ako je posao s posebnim uvjetima rada"
+                  style={{ maxWidth: 320 }}
+                />
               </div>
 
               {(razinaRizika === "srednji" || razinaRizika === "veliki") && (

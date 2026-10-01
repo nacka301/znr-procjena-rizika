@@ -220,6 +220,8 @@ export const useStore = create<StoreState>()(
           punaStaza,
           vjerojatnost: null,
           posljedica: null,
+          moguciDogadjaj: "",
+          tockaPravilnika: "",
           ozoPrijedlog: "",
           ozoNijePotrebna: false,
           lijecnickiPregled: "",

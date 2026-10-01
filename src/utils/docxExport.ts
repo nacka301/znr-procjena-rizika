@@ -156,21 +156,25 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
         rows: [
           naslovTablice([
             "Opasnost / štetnost / napor",
+            "Mogući neželjeni događaj",
             "Vjerojatnost",
             "Posljedica",
             "Razina",
             "OZO",
             "Liječnički pregled",
+            "Točka Pravilnika",
           ]),
           ...p.rizici.map((r) => {
             const razina = izracunajRazinu(r.vjerojatnost, r.posljedica);
             return redak([
               celija(r.punaStaza),
+              celija(r.moguciDogadjaj || "-"),
               celija(r.vjerojatnost ? String(r.vjerojatnost) : "-"),
               celija(r.posljedica ? String(r.posljedica) : "-"),
               celija(razina ? RAZINA_TEKST[razina] : "-"),
               celija(ozoTekst(r, "-")),
               celija(r.lijecnickiPregled || "-"),
+              celija(r.tockaPravilnika || "-"),
             ]);
           }),
         ],

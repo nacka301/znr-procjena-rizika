@@ -40,6 +40,8 @@ function rizik(
     punaStaza,
     vjerojatnost,
     posljedica,
+    moguciDogadjaj: "",
+    tockaPravilnika: "",
     ozoPrijedlog: "",
     ozoNijePotrebna: false,
     lijecnickiPregled: "",
