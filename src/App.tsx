@@ -107,7 +107,9 @@ function App() {
         {poslodavac.isPrimjer && (
           <div className="demo-banner">
             PRIMJER – nije stručna procjena. Svi podaci o poslodavcu "Primjer d.o.o." su izmišljeni
-            radi prikaza alata.
+            radi prikaza alata, uključujući ocjene vjerojatnosti i posljedice za svaki rizik — one
+            su ilustrativne (odabrane radi prikaza izračuna matrice), a ne stvarna stručna
+            procjena.
           </div>
         )}
         {sadrzaj}

@@ -16,6 +16,7 @@ const POSLJEDICA_LABEL: Record<Posljedica, string> = {
 };
 
 export default function Step4Analiza() {
+  const poslodavac = useStore((s) => s.poslodavac);
   const poslovi = useStore((s) => s.poslovi);
   const radnaOprema = useStore((s) => s.radnaOprema);
   const aktivniPosaoId = useStore((s) => s.aktivniPosaoId);
@@ -84,6 +85,12 @@ export default function Step4Analiza() {
           <span className="hint">Ukupna razina rizika posla:</span>
           <RiskBadge razina={razina} />
         </div>
+        {poslodavac.isPrimjer && (
+          <p className="hint" style={{ marginTop: 8, fontStyle: "italic" }}>
+            Napomena: vjerojatnost i posljedica u ovom primjeru su ilustrativne, odabrane radi
+            prikaza izračuna matrice — nisu stvarna stručna procjena.
+          </p>
+        )}
       </div>
 
       <div className="card">
