@@ -134,3 +134,28 @@ function sastavi(
 export function ozoPlocice(r: Pick<Rizik, "ozoPrijedlog">): string[] {
   return razdvoji(r.ozoPrijedlog);
 }
+
+/**
+ * OZO kao parovi "naziv (norma)" - popis opreme i popis normi nikad se ne razdvajaju.
+ * npr. ["Zaštitne rukavice – toplinski rizici (HRN EN 407)",
+ *       "Zaštitna odjeća – toplina i plamen (HRN EN ISO 11612)"]
+ */
+export function ozoParovi(r: Pick<Rizik, "ozoPrijedlog" | "ozoNorma">): string[] {
+  const stanje = stanjeOzo(r);
+  const izKataloga = OZO_KATALOG.filter((s) => stanje.odabrani.includes(s.id)).map((s) =>
+    s.norma ? `${s.naziv} (${s.norma})` : s.naziv
+  );
+  // Slobodno upisane norme koje ne pripadaju nijednoj odabranoj stavci ne smiju se izgubiti.
+  const preostaleNorme = stanje.slobodneNorme.map((n) => `norma: ${n}`);
+  return [...izKataloga, ...stanje.slobodne, ...preostaleNorme];
+}
+
+/** Isto, kao jedan redak teksta za tablice dokumenta i Word izvoz. */
+export function ozoTekstSNormama(
+  r: Pick<Rizik, "ozoPrijedlog" | "ozoNorma" | "ozoNijePotrebna">,
+  prazno = "–"
+): string {
+  if (r.ozoNijePotrebna) return "OZO nije potrebna";
+  const parovi = ozoParovi(r);
+  return parovi.length > 0 ? parovi.join("; ") : prazno;
+}

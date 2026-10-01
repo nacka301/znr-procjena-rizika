@@ -151,3 +151,26 @@ Ovaj krug mijenja **samo prikaz i interakciju**. Logika izračuna (`izracunajRaz
   korisnik koji **nije ništa mijenjao** pri sljedećem otvaranju automatski dobiva novi primjer.
   Zastavicu `korisnikMijenjao` postavlja omotač oko `set` u storeu, pa je nemoguće zaboraviti je
   postaviti u novoj akciji; radnje koje mijenjaju samo prikaz koriste `rawSet`.
+
+### Ispravci nakon prvog kruga redizajna
+
+- **Prilog 9 traži KONKRETNU točku.** `jeKonkretnaTocka` (src/utils/posebniUvjeti.ts) prihvaća
+  samo vodeći broj iza kojeg slijedi kraj teksta ili razdjelnik ("16 – teško fizičko naprezanje",
+  "17", "16."). Neodređena bilješka ("18 ili sljedeće, PROVJERITI") **ne** uključuje posao u
+  Prilog 9, jer to nije utvrđena točka nego napomena stručnjaka. U primjeru su takve bilješke
+  uklonjene kod "Vrući okoliš" i "Nadražljivci", pa u Prilogu 9 ostaje samo "Skladištenje i
+  zaprimanje robe – točka 16".
+- **Točka Pravilnika nije mjerilo potpunosti.** Pravilo "veliki rizik bez točke Pravilnika"
+  uklonjeno je iz panela Provjere i iz stupca Status: točka se tiče samo poslova s posebnim
+  uvjetima rada (NN 5/84), a ne svakog velikog rizika. Ostaje pravilo "veliki rizik bez upisanog
+  liječničkog pregleda".
+- **OZO se u dokumentu i izvozu ispisuje kao parovi "naziv (norma)"** (`ozoParovi` /
+  `ozoTekstSNormama` u src/utils/ozo.ts). Popis opreme više nije odvojen od popisa normi, pa se
+  ne može izgubiti koja norma pripada kojoj stavci. Prilog 3 ima jedan stupac "OZO (norma)".
+- **Word: naslovi poglavlja i priloga imaju "keep with next"** (`naslovParagraf`), pa naslov ne
+  ostaje sam na dnu stranice.
+- **Primjer se osvježava samo ako je `poslodavac.isPrimjer === true`.** Podaci koje je korisnik
+  unio za svog poslodavca nikad se ne prepisuju primjerom, čak ni ako zastavica
+  `korisnikMijenjao` izostane iz starijeg zapisa.
+- `izradiDocxBlob` odvojen je od `izveziDocx` i više ne ovisi o pregledniku (file-saver se
+  učitava tek pri spremanju), pa se izvoz može provjeriti i izvan preglednika.

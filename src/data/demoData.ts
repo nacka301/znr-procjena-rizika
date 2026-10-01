@@ -22,7 +22,7 @@ const ERGONOMIJA_SVE_DA: Record<string, ErgonomijaOdgovor> = Object.fromEntries(
 
 // Verzija primjera. Kad se primjer promijeni, podigni ovaj broj: korisnici koji nisu ništa
 // mijenjali automatski dobivaju novi primjer pri sljedećem otvaranju (vidi src/state/store.ts).
-export const PRIMJER_VERZIJA = 3;
+export const PRIMJER_VERZIJA = 4;
 
 export const DEMO_POSLODAVAC: Poslodavac = {
   naziv: "Primjer d.o.o.",
@@ -165,7 +165,6 @@ export const DEMO_POSLOVI: Posao[] = [
       rizik("stetnost", ["3", "3.4", "3.4.2"], 2, 2, "r7", {
         moguciDogadjaj: "toplinski udar ili dehidracija zbog rada u vrućem okruženju pored peći",
         ozoNijePotrebna: true,
-        tockaPravilnika: "18 ili sljedeće, PROVJERITI",
       }),
       rizik("napor", ["1", "1.2", "1.2.3"], 2, 1, "r8", {
         moguciDogadjaj: "ozljeda leđa pri podizanju vreća brašna i kalupa s pecivom",
@@ -239,7 +238,6 @@ export const DEMO_POSLOVI: Posao[] = [
         moguciDogadjaj: "iritacija kože i dišnih putova pri radu sa sredstvima za čišćenje",
         ozoPrijedlog: "Zaštitne rukavice – kemikalije; Zaštitne naočale / vizir",
         ozoNorma: "HRN EN ISO 374-1; HRN EN 166",
-        tockaPravilnika: "18 ili sljedeće, PROVJERITI",
       }),
       rizik("opasnost", ["2", "2.1", "2.1.1"], 2, 1, "r16", {
         moguciDogadjaj: "pad na mokroj ili skliskoj podlozi tijekom čišćenja",

@@ -22,7 +22,9 @@ export function Select({
   ...props
 }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select className={cn(polje, "cursor-pointer pr-7", className)} {...props}>
+    // Preglednik sam crta strelicu unutar desnog ruba, pa dodatno rezerviranje prostora
+    // (pr-7) samo nepotrebno skraćuje tekst u uskim stupcima.
+    <select className={cn(polje, "cursor-pointer pr-1.5", className)} {...props}>
       {children}
     </select>
   );

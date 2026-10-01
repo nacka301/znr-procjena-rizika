@@ -298,16 +298,19 @@ export default function Step5Mjere() {
             <>
               <TableWrap className="hidden md:block">
                 {/* Minimalna širina drži stupce čitkima; uži prozor dobiva vodoravni pomak. */}
-                <Table className="min-w-[1120px]">
+                {/* Ukupno 972px: stane bez klizanja na 1280px (dostupno 979px). Na 1440px, gdje
+                    panel Provjere uzima širinu, tablica klizi vodoravno UNUTAR kartice i ne
+                    izlazi iz nje - tekst se prelama, ništa se ne reže. */}
+                <Table className="min-w-[972px]">
                   <thead>
                     <tr>
-                      <Th className="w-[148px]">Posao</Th>
-                      <Th className="w-[240px]">Mjera</Th>
-                      <Th className="w-[150px]">Rok</Th>
-                      <Th className="w-[164px]">Odgovorna osoba</Th>
-                      <Th className="w-[190px]">Kontrola</Th>
-                      <Th className="w-[142px]">Periodika</Th>
-                      <Th className="w-[48px]" />
+                      <Th className="w-[180px]">Posao</Th>
+                      <Th className="w-[196px]">Mjera</Th>
+                      <Th className="w-[124px]">Rok</Th>
+                      <Th className="w-[150px]">Odgovorna osoba</Th>
+                      <Th className="w-[158px]">Kontrola</Th>
+                      <Th className="w-[120px]">Periodika</Th>
+                      <Th className="w-[44px]" />
                     </tr>
                   </thead>
                   <tbody>
@@ -465,9 +468,9 @@ function RedakRizika({
   const ref = useFokusRef<HTMLTableRowElement>(fokusirano);
   const razina = izracunajRazinu(r.vjerojatnost, r.posljedica);
   const nedostaje = trebaOzo(r);
-  const nedostajeTocka = razina === "veliki" && !(r.tockaPravilnika ?? "").trim();
+  // Točka Pravilnika nije uvjet potpunosti - ona se tiče samo poslova s posebnim uvjetima rada.
   const nedostajePregled = razina === "veliki" && !(r.lijecnickiPregled ?? "").trim();
-  const sveGotovo = !nedostaje && !nedostajeTocka && !nedostajePregled;
+  const sveGotovo = !nedostaje && !nedostajePregled;
 
   return (
     <tr
@@ -514,11 +517,7 @@ function RedakRizika({
           </span>
         ) : (
           <span className="text-[12px] text-[var(--color-risk-srednji)]">
-            {nedostaje
-              ? "Nedostaje OZO"
-              : nedostajeTocka
-                ? "Nedostaje točka"
-                : "Nedostaje pregled"}
+            {nedostaje ? "Nedostaje OZO" : "Nedostaje pregled"}
           </span>
         )}
       </Td>
@@ -604,6 +603,7 @@ function RedakMjere({
   onUkloni: () => void;
 }) {
   const ref = useFokusRef<HTMLTableRowElement>(fokusirano);
+  const odabraniPosao = poslovi.find((p) => p.id === m.posaoId);
   return (
     <tr ref={ref} className={cn("group", fokusirano && KLASA_FOKUSA)}>
       <Td>
@@ -619,6 +619,12 @@ function RedakMjere({
             </option>
           ))}
         </Select>
+        {/* Select reže dugi naziv, pa puni naziv stoji prelomljen ispod njega. */}
+        {odabraniPosao ? (
+          <span className="cell-wrap mt-1 block text-[11px] leading-snug text-slate-500">
+            {odabraniPosao.naziv}
+          </span>
+        ) : null}
       </Td>
       <Td>
         <AutoTextarea

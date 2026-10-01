@@ -7,7 +7,7 @@ import type { ErgonomijaZadovoljava } from "../types";
 import { ERGONOMIJA_KATEGORIJE } from "../data/ergonomijaKategorije";
 import { ISPITIVANJA_KATALOG } from "../data/prijedloziKatalozi";
 import { imaTockuPravilnika, jePosebniUvjeti, obrazlozenjePosebniUvjeti } from "../utils/posebniUvjeti";
-import { ozoPlocice } from "../utils/ozo";
+import { ozoParovi, ozoPlocice } from "../utils/ozo";
 import PageHeader from "../components/PageHeader";
 import RiskBadge from "../components/RiskBadge";
 import { Card, CardBody, CardHeader, EmptyState } from "../components/ui/card";
@@ -407,8 +407,7 @@ export default function Step6Prilozi() {
                             <tr>
                               <Th>Rizik</Th>
                               <Th className="w-[92px]">Razina</Th>
-                              <Th>OZO</Th>
-                              <Th className="w-[200px]">Norma</Th>
+                              <Th>OZO (norma)</Th>
                             </tr>
                           </thead>
                           <tbody>
@@ -418,9 +417,16 @@ export default function Step6Prilozi() {
                                 <Td>
                                   <RiskBadge razina={razina} />
                                 </Td>
-                                <Td>{r.ozoPrijedlog || <span className="text-slate-400">–</span>}</Td>
-                                <Td className="text-slate-600">
-                                  {r.ozoNorma || <span className="text-slate-400">–</span>}
+                                <Td>
+                                  {ozoParovi(r).length === 0 ? (
+                                    <span className="text-slate-400">–</span>
+                                  ) : (
+                                    <ul className="flex flex-col gap-0.5">
+                                      {ozoParovi(r).map((stavka) => (
+                                        <li key={stavka}>{stavka}</li>
+                                      ))}
+                                    </ul>
+                                  )}
                                 </Td>
                               </tr>
                             ))}

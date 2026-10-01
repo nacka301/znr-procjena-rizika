@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { izveziDocx } from "../utils/docxExport";
 import { ERGONOMIJA_KATEGORIJE } from "../data/ergonomijaKategorije";
 import { jePosebniUvjeti, obrazlozenjePosebniUvjeti } from "../utils/posebniUvjeti";
+import { ozoTekstSNormama } from "../utils/ozo";
 import { DISCLAIMER } from "../components/TopBar";
 import PageHeader from "../components/PageHeader";
 import { Button } from "../components/ui/button";
@@ -304,11 +305,7 @@ export default function Step7Pregled() {
                     <Td className="tabular text-center">{r.vjerojatnost ?? "–"}</Td>
                     <Td className="tabular text-center">{r.posljedica ?? "–"}</Td>
                     <Td>{izracunajRazinu(r.vjerojatnost, r.posljedica) ?? "–"}</Td>
-                    <Td>
-                      {r.ozoNijePotrebna
-                        ? "OZO nije potrebna"
-                        : [r.ozoPrijedlog, r.ozoNorma].filter(Boolean).join(" · ") || "–"}
-                    </Td>
+                    <Td>{ozoTekstSNormama(r)}</Td>
                     <Td>{r.lijecnickiPregled || "–"}</Td>
                     <Td>{r.tockaPravilnika || "–"}</Td>
                   </tr>
@@ -388,13 +385,12 @@ export default function Step7Pregled() {
             ozoPoPoslovima.map(({ posao, stavke }) => (
               <div key={posao.id}>
                 <p className="mt-2 font-semibold">{posao.naziv}</p>
-                <DokTablica zaglavlje={["Rizik", "Razina", "OZO", "Norma"]}>
+                <DokTablica zaglavlje={["Rizik", "Razina", "OZO (norma)"]}>
                   {stavke.map(({ r, razina }) => (
                     <tr key={r.id}>
                       <Td>{r.naziv}</Td>
                       <Td className="w-[14%]">{razina ?? "–"}</Td>
-                      <Td>{r.ozoPrijedlog || "–"}</Td>
-                      <Td>{r.ozoNorma || "–"}</Td>
+                      <Td>{ozoTekstSNormama(r)}</Td>
                     </tr>
                   ))}
                 </DokTablica>

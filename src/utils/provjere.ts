@@ -148,14 +148,8 @@ export function izracunajProvjere(u: UlazProvjere): Provjera[] {
           cilj: { korak: "mjere", posaoId: posao.id, rizikId: r.id },
         });
 
-      if (razina === "veliki" && prazno(r.tockaPravilnika))
-        p.push({
-          id: `mj-tocka-${r.id}`,
-          tekst: `${r.naziv || "Rizik"} – veliki rizik bez točke Pravilnika`,
-          kontekst: posao.naziv,
-          cilj: { korak: "mjere", posaoId: posao.id, rizikId: r.id },
-        });
-
+      // Točka Pravilnika namjerno NIJE uvjet potpunosti: ona vrijedi samo za poslove s posebnim
+      // uvjetima rada (NN 5/84), a ne za svaki veliki rizik.
       if (razina === "veliki" && prazno(r.lijecnickiPregled))
         p.push({
           id: `mj-lijecnicki-${r.id}`,

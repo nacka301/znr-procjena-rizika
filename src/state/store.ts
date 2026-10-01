@@ -520,9 +520,12 @@ export const useStore = create<StoreState>()(
       }),
       // Kad se promijeni verzija primjera, a korisnik nije ništa mijenjao, automatski učitaj
       // novi primjer - inače bi netaknuti primjer zauvijek ostao na staroj verziji.
+      // Uvjet isPrimjer je ključan: podaci koje je korisnik unio za SVOG poslodavca nikad se ne
+      // prepisuju primjerom, čak ni ako zastavica korisnikMijenjao nekako izostane.
       onRehydrateStorage: () => (state) => {
         if (!state) return;
-        if (!state.korisnikMijenjao && state.primjerVerzija !== PRIMJER_VERZIJA) {
+        const jePrimjer = state.poslodavac?.isPrimjer === true;
+        if (jePrimjer && !state.korisnikMijenjao && state.primjerVerzija !== PRIMJER_VERZIJA) {
           state.ucitajPrimjer();
         }
       },

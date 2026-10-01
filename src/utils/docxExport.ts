@@ -12,11 +12,11 @@ import {
   TextRun,
   WidthType,
 } from "docx";
-import { saveAs } from "file-saver";
 import { izracunajRazinu, razinaPosla } from "../types";
 import type { Ispitivanje, MjeraPlana, Poslodavac, Posao, RadnaOprema, RadnoMjesto } from "../types";
 import { ERGONOMIJA_KATEGORIJE } from "../data/ergonomijaKategorije";
 import { jePosebniUvjeti, obrazlozenjePosebniUvjeti } from "./posebniUvjeti";
+import { ozoTekstSNormama } from "./ozo";
 
 const RAZINA_TEKST: Record<string, string> = {
   mali: "Mali rizik",
@@ -24,9 +24,21 @@ const RAZINA_TEKST: Record<string, string> = {
   veliki: "Veliki rizik",
 };
 
-function ozoTekst(r: { ozoNijePotrebna: boolean; ozoPrijedlog: string }, prazno: string): string {
-  if (r.ozoNijePotrebna) return "OZO nije potrebna";
-  return r.ozoPrijedlog || prazno;
+// OZO se uvijek ispisuje kao parovi "naziv (norma)" - popis opreme nikad nije odvojen od
+// popisa normi, pa se ne može izgubiti koja norma pripada kojoj stavci.
+function ozoTekst(
+  r: { ozoNijePotrebna: boolean; ozoPrijedlog: string; ozoNorma: string },
+  prazno: string
+): string {
+  return ozoTekstSNormama(r, prazno);
+}
+
+/**
+ * Naslov poglavlja/priloga uz "keep with next" - naslov nikad ne ostaje sam na dnu stranice,
+ * nego prelazi na sljedeću zajedno sa svojim sadržajem.
+ */
+function naslovParagraf(level: (typeof HeadingLevel)[keyof typeof HeadingLevel], text: string) {
+  return new Paragraph({ heading: level, text, keepNext: true, keepLines: true });
 }
 
 function celija(tekst: string, opcije: { bold?: boolean; width?: number } = {}): TableCell {
@@ -57,16 +69,19 @@ export interface PodaciZaIzvoz {
   ispitivanja: Ispitivanje[];
 }
 
-export async function izveziDocx(data: PodaciZaIzvoz) {
+/** Sastavlja .docx u memoriji. Odvojeno od spremanja, da se izvoz može provjeriti bez preglednika. */
+export async function izradiDocxBlob(data: PodaciZaIzvoz): Promise<Blob> {
   const { poslodavac, radnaMjesta, poslovi, radnaOprema, mjerePlana, ispitivanja } = data;
 
   const naslov = new Paragraph({
     heading: HeadingLevel.TITLE,
+    keepNext: true,
     alignment: AlignmentType.CENTER,
     children: [new TextRun(`Procjena rizika – ${poslodavac.naziv || "(bez naziva)"}`)],
   });
 
   const podnaslov = new Paragraph({
+    keepNext: true,
     alignment: AlignmentType.CENTER,
     children: [
       new TextRun({
@@ -81,7 +96,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
   const ukupnoRadnika = radnaMjesta.reduce((zbroj, rm) => zbroj + rm.brojRadnika, 0);
 
   const cjelina1 = [
-    new Paragraph({ heading: HeadingLevel.HEADING_1, text: "1. Opći podaci" }),
+    naslovParagraf(HeadingLevel.HEADING_1, "1. Opći podaci"),
     new Paragraph({ text: `Naziv poslodavca: ${poslodavac.naziv}` }),
     new Paragraph({ text: `Djelatnost: ${poslodavac.djelatnost}` }),
     new Paragraph({ text: `Ukupan broj radnika: ${ukupnoRadnika}` }),
@@ -89,8 +104,8 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
   ];
 
   const cjelina2 = [
-    new Paragraph({ heading: HeadingLevel.HEADING_1, text: "2. Analiza prikupljenih podataka" }),
-    new Paragraph({ heading: HeadingLevel.HEADING_2, text: "Radna mjesta" }),
+    naslovParagraf(HeadingLevel.HEADING_1, "2. Analiza prikupljenih podataka"),
+    naslovParagraf(HeadingLevel.HEADING_2, "Radna mjesta"),
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       rows: [
@@ -110,7 +125,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
       ],
     }),
     new Paragraph({ text: "" }),
-    new Paragraph({ heading: HeadingLevel.HEADING_2, text: "Poslovi" }),
+    naslovParagraf(HeadingLevel.HEADING_2, "Poslovi"),
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       rows: [
@@ -135,14 +150,11 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
   ];
 
   const cjelina3: (Paragraph | Table)[] = [
-    new Paragraph({
-      heading: HeadingLevel.HEADING_1,
-      text: "3. Analiza i procjena rizika po poslovima",
-    }),
+    naslovParagraf(HeadingLevel.HEADING_1, "3. Analiza i procjena rizika po poslovima"),
   ];
   for (const p of poslovi) {
     cjelina3.push(
-      new Paragraph({ heading: HeadingLevel.HEADING_2, text: p.naziv }),
+      naslovParagraf(HeadingLevel.HEADING_2, p.naziv),
       new Paragraph({
         text: `Radna oprema: ${
           radnaOprema
@@ -190,7 +202,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
   }
 
   const cjelina4 = [
-    new Paragraph({ heading: HeadingLevel.HEADING_1, text: "4. Plan mjera / preporuke za poboljšanja" }),
+    naslovParagraf(HeadingLevel.HEADING_1, "4. Plan mjera / preporuke za poboljšanja"),
     mjerePlana.length === 0
       ? new Paragraph({ text: "Nema unesenih mjera." })
       : new Table({
@@ -242,8 +254,8 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
   const posloviRacunalo = poslovi.filter((p) => p.koristiRacunalo4h);
 
   const cjelina5: (Paragraph | Table)[] = [
-    new Paragraph({ heading: HeadingLevel.HEADING_1, text: "5. Prilozi" }),
-    new Paragraph({ heading: HeadingLevel.HEADING_2, text: "5.1 Raspored poslova po radnim mjestima" }),
+    naslovParagraf(HeadingLevel.HEADING_1, "5. Prilozi"),
+    naslovParagraf(HeadingLevel.HEADING_2, "5.1 Raspored poslova po radnim mjestima"),
     rasporedPoslova.length === 0
       ? new Paragraph({ text: "Nema povezanih radnih mjesta i poslova." })
       : new Table({
@@ -256,7 +268,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
           ],
         }),
     new Paragraph({ text: "" }),
-    new Paragraph({ heading: HeadingLevel.HEADING_2, text: "5.2 Popis radne opreme" }),
+    naslovParagraf(HeadingLevel.HEADING_2, "5.2 Popis radne opreme"),
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       rows: [
@@ -282,14 +294,11 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
       ],
     }),
     new Paragraph({ text: "" }),
-    new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      text: "5.3 Popis poslova za koje je određena OZO i popis OZO (provjeriti)",
-    }),
+    naslovParagraf(HeadingLevel.HEADING_2, "5.3 Popis poslova za koje je određena OZO i popis OZO (provjeriti)"),
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       rows: [
-        naslovTablice(["Posao", "Rizik", "Razina", "OZO", "Norma"]),
+        naslovTablice(["Posao", "Rizik", "Razina", "OZO (norma)"]),
         ...posloviSaOzo.flatMap((p) =>
           p.rizici
             .filter((r) => {
@@ -302,17 +311,13 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
                 celija(r.naziv),
                 celija(RAZINA_TEKST[izracunajRazinu(r.vjerojatnost, r.posljedica)!]),
                 celija(ozoTekst(r, "(provjeriti)")),
-                celija(r.ozoNorma || "(provjeriti)"),
               ])
             )
         ),
       ],
     }),
     new Paragraph({ text: "" }),
-    new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      text: "5.4 Popis potrebnih liječničkih pregleda (provjeriti)",
-    }),
+    naslovParagraf(HeadingLevel.HEADING_2, "5.4 Popis potrebnih liječničkih pregleda (provjeriti)"),
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       rows: [
@@ -329,10 +334,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
       ],
     }),
     new Paragraph({ text: "" }),
-    new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      text: "5.5 Sigurnosni podaci izvora kemijskih i fizikalnih štetnosti",
-    }),
+    naslovParagraf(HeadingLevel.HEADING_2, "5.5 Sigurnosni podaci izvora kemijskih i fizikalnih štetnosti"),
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       rows: [
@@ -343,10 +345,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
       ],
     }),
     new Paragraph({ text: "" }),
-    new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      text: "5.6 Popis potrebnih ispitivanja (provjeriti)",
-    }),
+    naslovParagraf(HeadingLevel.HEADING_2, "5.6 Popis potrebnih ispitivanja (provjeriti)"),
     ispitivanja.length === 0
       ? new Paragraph({ text: "Nema unesenih ispitivanja." })
       : new Table({
@@ -364,10 +363,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
           ],
         }),
     new Paragraph({ text: "" }),
-    new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      text: "5.7 Popis poslova izloženih naporu vida i/ili govora",
-    }),
+    naslovParagraf(HeadingLevel.HEADING_2, "5.7 Popis poslova izloženih naporu vida i/ili govora"),
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       rows: [
@@ -378,11 +374,11 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
       ],
     }),
     new Paragraph({ text: "" }),
-    new Paragraph({ heading: HeadingLevel.HEADING_2, text: "5.8 Ergonomija rada na računalu" }),
+    naslovParagraf(HeadingLevel.HEADING_2, "5.8 Ergonomija rada na računalu"),
     ...(posloviRacunalo.length === 0
       ? [new Paragraph({ text: "Nema poslova označenih kao rad na računalu 4+ sati dnevno." })]
       : posloviRacunalo.flatMap((p) => [
-          new Paragraph({ text: p.naziv, heading: HeadingLevel.HEADING_3 }),
+          naslovParagraf(HeadingLevel.HEADING_3, p.naziv),
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             rows: [
@@ -410,10 +406,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
           }),
           new Paragraph({ text: "" }),
         ])),
-    new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      text: "5.9 Popis poslova s posebnim uvjetima rada (provjeriti)",
-    }),
+    naslovParagraf(HeadingLevel.HEADING_2, "5.9 Popis poslova s posebnim uvjetima rada (provjeriti)"),
     posloviPosebniUvjeti.length === 0
       ? new Paragraph({ text: "Nije označen nijedan posao." })
       : new Table({
@@ -461,7 +454,17 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
     ],
   });
 
-  const blob = await Packer.toBlob(doc);
-  const nazivDatoteke = `Procjena_rizika_${(poslodavac.naziv || "bez_naziva").replace(/[^a-zA-Z0-9_-]+/g, "_")}.docx`;
-  saveAs(blob, nazivDatoteke);
+  return Packer.toBlob(doc);
+}
+
+export function nazivDatotekeIzvoza(poslodavac: Poslodavac): string {
+  return `Procjena_rizika_${(poslodavac.naziv || "bez_naziva").replace(/[^a-zA-Z0-9_-]+/g, "_")}.docx`;
+}
+
+export async function izveziDocx(data: PodaciZaIzvoz) {
+  const blob = await izradiDocxBlob(data);
+  // file-saver se učitava tek pri spremanju: izradiDocxBlob tako ostaje bez ovisnosti o
+  // pregledniku i može se pokrenuti i izvan njega.
+  const { saveAs } = await import("file-saver");
+  saveAs(blob, nazivDatotekeIzvoza(data.poslodavac));
 }
