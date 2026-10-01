@@ -80,29 +80,34 @@ export default function Step3Poslovi({
         )}
 
         {radnaMjesta.length > 0 && (
-          <div style={{ overflowX: "auto" }}>
-            <table className="data-table">
+          <div className="matrix-scroll">
+            <table className="data-table matrix-table">
               <thead>
                 <tr>
-                  <th style={{ minWidth: 220 }}>Posao</th>
-                  <th style={{ minWidth: 90 }}>Razina</th>
+                  <th className="matrix-col-posao">Posao</th>
+                  <th className="matrix-col-razina">Razina</th>
                   {radnaMjesta.map((rm) => (
-                    <th key={rm.id} style={{ textAlign: "center", minWidth: 90 }}>
+                    <th key={rm.id} className="matrix-col-rm" title={rm.naziv}>
                       {rm.naziv}
                     </th>
                   ))}
-                  <th style={{ width: 150 }}></th>
+                  <th className="matrix-col-akcije"></th>
                 </tr>
               </thead>
               <tbody>
                 {poslovi.map((posao) => (
                   <tr key={posao.id}>
-                    <td>
+                    <td className="matrix-col-posao">
                       <input
                         type="text"
                         value={posao.naziv}
                         onChange={(e) => updatePosaoNaziv(posao.id, e.target.value)}
-                        style={{ width: "100%", border: "none", background: "transparent" }}
+                        style={{
+                          width: "100%",
+                          border: "none",
+                          background: "transparent",
+                          font: "inherit",
+                        }}
                       />
                       {posao.radnaMjestaIds.length === 0 && (
                         <div className="hint" style={{ color: "var(--risk-srednji)" }}>
@@ -110,25 +115,25 @@ export default function Step3Poslovi({
                         </div>
                       )}
                     </td>
-                    <td>
+                    <td className="matrix-col-razina">
                       <RiskBadge razina={razinaPosla(posao.rizici)} />
                     </td>
                     {radnaMjesta.map((rm) => {
                       const oznaceno = posao.radnaMjestaIds.includes(rm.id);
                       return (
-                        <td key={rm.id} style={{ textAlign: "center" }}>
+                        <td key={rm.id} className="matrix-col-rm" style={{ textAlign: "center" }}>
                           <input
                             type="checkbox"
                             checked={oznaceno}
                             onChange={() => toggleVeza(posao.id, rm.id)}
                             aria-label={`${posao.naziv} - ${rm.naziv}`}
-                            style={{ width: 16, height: 16 }}
+                            style={{ width: 15, height: 15 }}
                           />
                         </td>
                       );
                     })}
-                    <td>
-                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    <td className="matrix-col-akcije">
+                      <div className="matrix-akcije-col">
                         <button
                           className="btn btn-sm"
                           onClick={() => {
@@ -136,7 +141,7 @@ export default function Step3Poslovi({
                             onOtvoriAnalizu();
                           }}
                         >
-                          Analiza →
+                          Analiza
                         </button>
                         <button
                           className="btn btn-sm"

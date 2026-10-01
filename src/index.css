@@ -409,6 +409,69 @@ table.data-table tr:last-child td {
   border-color: var(--color-border);
 }
 
+.matrix-scroll {
+  overflow-x: auto;
+}
+
+table.matrix-table {
+  font-size: 0.78rem;
+  table-layout: fixed;
+}
+
+table.matrix-table th,
+table.matrix-table td {
+  padding: 5px 5px;
+}
+
+table.matrix-table th {
+  font-size: 0.66rem;
+  line-height: 1.2;
+  white-space: normal;
+  word-break: break-word;
+  vertical-align: bottom;
+}
+
+.matrix-col-posao {
+  width: 148px;
+  min-width: 148px;
+}
+
+.matrix-col-razina {
+  width: 62px;
+  min-width: 62px;
+  text-align: center;
+}
+
+.matrix-col-razina .badge-risk {
+  padding: 2px 6px;
+  font-size: 0.64rem;
+  white-space: normal;
+}
+
+.matrix-col-rm {
+  width: 50px;
+  min-width: 50px;
+  text-align: center;
+}
+
+.matrix-col-akcije {
+  width: 68px;
+  min-width: 68px;
+}
+
+.matrix-akcije-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.matrix-akcije-col .btn {
+  width: 100%;
+  padding: 3px 4px;
+  font-size: 0.68rem;
+  justify-content: center;
+}
+
 .matrix-link-grid {
   display: grid;
   gap: 1px;
