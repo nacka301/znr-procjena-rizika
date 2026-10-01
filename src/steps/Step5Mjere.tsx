@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useStore } from "../state/store";
 import { izracunajRazinu } from "../types";
 import RiskBadge from "../components/RiskBadge";
+import PrijedlogChips, { dodajUTekst } from "../components/PrijedlogChips";
+import { LIJECNICKI_PREGLED_KATALOG, OZO_KATALOG } from "../data/prijedloziKatalozi";
 
 export default function Step5Mjere() {
   const poslovi = useStore((s) => s.poslovi);
@@ -86,18 +88,44 @@ export default function Step5Mjere() {
             </div>
 
             <div className="field-row" style={{ marginTop: 10 }}>
-              <label>
-                Prijedlog OZO <span className="tag-prijedlog">prijedlog, provjeriti</span>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 400 }}>
+                <input
+                  type="checkbox"
+                  checked={r.ozoNijePotrebna}
+                  onChange={(e) =>
+                    updateRizik(posao.id, r.id, {
+                      ozoNijePotrebna: e.target.checked,
+                      ozoPrijedlog: e.target.checked ? "" : r.ozoPrijedlog,
+                    })
+                  }
+                />
+                OZO nije potrebna za ovaj rizik
               </label>
-              <input
-                type="text"
-                value={r.ozoPrijedlog}
-                onChange={(e) =>
-                  updateRizik(posao.id, r.id, { ozoPrijedlog: e.target.value })
-                }
-                placeholder="npr. zaštitne rukavice, zaštitne naočale — unesite i provjerite prije korištenja"
-              />
             </div>
+
+            {!r.ozoNijePotrebna && (
+              <div className="field-row">
+                <label>
+                  Prijedlog OZO <span className="tag-prijedlog">prijedlog, provjeriti</span>
+                </label>
+                <input
+                  type="text"
+                  value={r.ozoPrijedlog}
+                  onChange={(e) =>
+                    updateRizik(posao.id, r.id, { ozoPrijedlog: e.target.value })
+                  }
+                  placeholder="npr. zaštitne rukavice, zaštitne naočale — unesite i provjerite prije korištenja"
+                />
+                <PrijedlogChips
+                  katalog={OZO_KATALOG}
+                  onOdaberi={(stavka) =>
+                    updateRizik(posao.id, r.id, {
+                      ozoPrijedlog: dodajUTekst(r.ozoPrijedlog, stavka),
+                    })
+                  }
+                />
+              </div>
+            )}
 
             {razina === "veliki" && (
               <div className="field-row">
@@ -112,6 +140,14 @@ export default function Step5Mjere() {
                     updateRizik(posao.id, r.id, { lijecnickiPregled: e.target.value })
                   }
                   placeholder="unesite prema primjenjivom propisu i vrsti rizika"
+                />
+                <PrijedlogChips
+                  katalog={LIJECNICKI_PREGLED_KATALOG}
+                  onOdaberi={(stavka) =>
+                    updateRizik(posao.id, r.id, {
+                      lijecnickiPregled: dodajUTekst(r.lijecnickiPregled, stavka),
+                    })
+                  }
                 />
               </div>
             )}

@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { useStore } from "../state/store";
 import { izracunajRazinu } from "../types";
 import RiskBadge from "../components/RiskBadge";
+import PrijedlogChips from "../components/PrijedlogChips";
+import { ISPITIVANJA_KATALOG } from "../data/prijedloziKatalozi";
 
 function NapomenaPolje({ naziv }: { naziv: string }) {
   const tekst = useStore((s) => s.napomenePriloga[naziv] ?? "");
@@ -135,7 +137,15 @@ export default function Step6Prilozi() {
                     <td>
                       <RiskBadge razina={razina} />
                     </td>
-                    <td>{r.ozoPrijedlog || <span className="hint">(nije uneseno)</span>}</td>
+                    <td>
+                      {r.ozoNijePotrebna ? (
+                        <span className="hint" style={{ fontStyle: "italic" }}>
+                          OZO nije potrebna
+                        </span>
+                      ) : (
+                        r.ozoPrijedlog || <span className="hint">(nije uneseno)</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -254,6 +264,15 @@ export default function Step6Prilozi() {
             + Dodaj
           </button>
         </div>
+        <p className="hint" style={{ marginTop: 10 }}>
+          Brzi odabir iz uobičajenih ispitivanja (klik odmah dodaje na popis, zatim uredivo):
+        </p>
+        <PrijedlogChips
+          katalog={ISPITIVANJA_KATALOG.filter(
+            (stavka) => !ispitivanja.some((isp) => isp.naziv.toLowerCase() === stavka.toLowerCase())
+          )}
+          onOdaberi={(stavka) => addIspitivanje(stavka)}
+        />
       </div>
 
       <div className="card">

@@ -40,6 +40,7 @@ export interface Rizik {
   vjerojatnost: Vjerojatnost | null;
   posljedica: Posljedica | null;
   ozoPrijedlog: string;
+  ozoNijePotrebna: boolean;
   lijecnickiPregled: string;
   napomena?: string;
 }

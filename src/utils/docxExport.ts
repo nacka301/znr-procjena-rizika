@@ -20,6 +20,11 @@ const RAZINA_TEKST: Record<string, string> = {
   veliki: "Veliki rizik",
 };
 
+function ozoTekst(r: { ozoNijePotrebna: boolean; ozoPrijedlog: string }, prazno: string): string {
+  if (r.ozoNijePotrebna) return "OZO nije potrebna";
+  return r.ozoPrijedlog || prazno;
+}
+
 function celija(tekst: string, opcije: { bold?: boolean; width?: number } = {}): TableCell {
   return new TableCell({
     width: opcije.width ? { size: opcije.width, type: WidthType.PERCENTAGE } : undefined,
@@ -164,7 +169,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
               celija(r.vjerojatnost ? String(r.vjerojatnost) : "-"),
               celija(r.posljedica ? String(r.posljedica) : "-"),
               celija(razina ? RAZINA_TEKST[razina] : "-"),
-              celija(r.ozoPrijedlog || "-"),
+              celija(ozoTekst(r, "-")),
               celija(r.lijecnickiPregled || "-"),
             ]);
           }),
@@ -254,7 +259,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
                 celija(p.naziv),
                 celija(r.naziv),
                 celija(RAZINA_TEKST[izracunajRazinu(r.vjerojatnost, r.posljedica)!]),
-                celija(r.ozoPrijedlog || "(provjeriti)"),
+                celija(ozoTekst(r, "(provjeriti)")),
               ])
             )
         ),

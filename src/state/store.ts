@@ -221,6 +221,7 @@ export const useStore = create<StoreState>()(
           vjerojatnost: null,
           posljedica: null,
           ozoPrijedlog: "",
+          ozoNijePotrebna: false,
           lijecnickiPregled: "",
         };
         set((s) => ({

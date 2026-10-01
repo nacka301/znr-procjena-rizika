@@ -41,6 +41,7 @@ function rizik(
     vjerojatnost,
     posljedica,
     ozoPrijedlog: "",
+    ozoNijePotrebna: false,
     lijecnickiPregled: "",
   };
 }
