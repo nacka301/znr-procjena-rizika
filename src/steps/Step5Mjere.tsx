@@ -3,7 +3,11 @@ import { useStore } from "../state/store";
 import { izracunajRazinu } from "../types";
 import RiskBadge from "../components/RiskBadge";
 import PrijedlogChips, { dodajUTekst } from "../components/PrijedlogChips";
-import { LIJECNICKI_PREGLED_KATALOG, OZO_KATALOG } from "../data/prijedloziKatalozi";
+import {
+  LIJECNICKI_PREGLED_KATALOG,
+  OZO_KATALOG,
+  OZO_NORME_KATALOG,
+} from "../data/prijedloziKatalozi";
 
 export default function Step5Mjere() {
   const poslovi = useStore((s) => s.poslovi);
@@ -19,6 +23,7 @@ export default function Step5Mjere() {
     rok: "",
     odgovornaOsoba: "",
     kontrola: "",
+    periodika: "",
   });
 
   const rizikiZaOzo = poslovi.flatMap((posao) =>
@@ -35,8 +40,16 @@ export default function Step5Mjere() {
       rok: novaMjera.rok.trim(),
       odgovornaOsoba: novaMjera.odgovornaOsoba.trim(),
       kontrola: novaMjera.kontrola.trim(),
+      periodika: novaMjera.periodika.trim(),
     });
-    setNovaMjera({ posaoId: "", mjera: "", rok: "", odgovornaOsoba: "", kontrola: "" });
+    setNovaMjera({
+      posaoId: "",
+      mjera: "",
+      rok: "",
+      odgovornaOsoba: "",
+      kontrola: "",
+      periodika: "",
+    });
   }
 
   return (
@@ -127,6 +140,28 @@ export default function Step5Mjere() {
               </div>
             )}
 
+            {!r.ozoNijePotrebna && (
+              <div className="field-row">
+                <label>
+                  Norma OZO <span className="tag-prijedlog">prijedlog, provjeriti</span>
+                </label>
+                <input
+                  type="text"
+                  value={r.ozoNorma}
+                  onChange={(e) => updateRizik(posao.id, r.id, { ozoNorma: e.target.value })}
+                  placeholder="npr. HRN EN 388 — unesite i provjerite primjenjivost"
+                />
+                <PrijedlogChips
+                  katalog={OZO_NORME_KATALOG}
+                  onOdaberi={(stavka) =>
+                    updateRizik(posao.id, r.id, {
+                      ozoNorma: dodajUTekst(r.ozoNorma, stavka),
+                    })
+                  }
+                />
+              </div>
+            )}
+
             {razina === "veliki" && (
               <div className="field-row">
                 <label>
@@ -157,7 +192,7 @@ export default function Step5Mjere() {
 
       <div className="card">
         <h2>Plan mjera</h2>
-        <p className="hint">Mjera, rok, odgovorna osoba i kontrola provedbe.</p>
+        <p className="hint">Mjera, rok, odgovorna osoba, kontrola provedbe i periodika ponavljanja.</p>
 
         {mjerePlana.length === 0 && (
           <div className="empty-state">Nema unesenih mjera u planu.</div>
@@ -171,6 +206,7 @@ export default function Step5Mjere() {
                 <th>Rok</th>
                 <th>Odgovorna osoba</th>
                 <th>Kontrola</th>
+                <th>Periodika</th>
                 <th></th>
               </tr>
             </thead>
@@ -227,6 +263,15 @@ export default function Step5Mjere() {
                     />
                   </td>
                   <td>
+                    <input
+                      type="text"
+                      value={m.periodika}
+                      onChange={(e) => updateMjera(m.id, { periodika: e.target.value })}
+                      placeholder="npr. mjesečno"
+                      style={{ width: 110 }}
+                    />
+                  </td>
+                  <td>
                     <button className="btn btn-sm btn-danger" onClick={() => removeMjera(m.id)}>
                       Ukloni
                     </button>
@@ -240,7 +285,7 @@ export default function Step5Mjere() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 2fr 1fr 1fr 1fr auto",
+            gridTemplateColumns: "1fr 2fr 1fr 1fr 1fr 1fr auto",
             gap: 8,
             marginTop: 14,
             alignItems: "flex-end",
@@ -292,6 +337,15 @@ export default function Step5Mjere() {
               type="text"
               value={novaMjera.kontrola}
               onChange={(e) => setNovaMjera((n) => ({ ...n, kontrola: e.target.value }))}
+            />
+          </div>
+          <div className="field-row" style={{ marginBottom: 0 }}>
+            <label>Periodika</label>
+            <input
+              type="text"
+              value={novaMjera.periodika}
+              onChange={(e) => setNovaMjera((n) => ({ ...n, periodika: e.target.value }))}
+              placeholder="npr. mjesečno"
             />
           </div>
           <button className="btn btn-primary btn-sm" onClick={dodajMjeru}>

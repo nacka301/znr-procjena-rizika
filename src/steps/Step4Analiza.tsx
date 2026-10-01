@@ -26,6 +26,7 @@ export default function Step4Analiza() {
   const removeRizik = useStore((s) => s.removeRizik);
   const toggleOpremaNaPoslu = useStore((s) => s.toggleOpremaNaPoslu);
   const addRadnaOpremaOpcija = useStore((s) => s.addRadnaOpremaOpcija);
+  const toggleKoristiRacunalo4h = useStore((s) => s.toggleKoristiRacunalo4h);
   const [novaOprema, setNovaOprema] = useState("");
   const [prikaziPicker, setPrikaziPicker] = useState(false);
 
@@ -293,6 +294,21 @@ export default function Step4Analiza() {
             + Dodaj
           </button>
         </div>
+      </div>
+
+      <div className="card">
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 400 }}>
+          <input
+            type="checkbox"
+            checked={posao.koristiRacunalo4h}
+            onChange={() => toggleKoristiRacunalo4h(posao.id)}
+          />
+          Posao uključuje rad na računalu 4 ili više sati dnevno
+        </label>
+        <p className="hint" style={{ marginTop: 6 }}>
+          Ako je označeno, u koraku "Prilozi" otvara se kratki checklist ergonomije rada na
+          računalu za ovaj posao.
+        </p>
       </div>
     </div>
   );

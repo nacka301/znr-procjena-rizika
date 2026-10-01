@@ -26,6 +26,20 @@ export const LIJECNICKI_PREGLED_KATALOG: string[] = [
   "Toksikološka obrada prema izloženosti",
 ];
 
+// Opće poznate oznake HRN EN normi za pojedine vrste OZO. Primjenjivost na konkretan rizik je
+// uvijek "provjeriti prije korištenja" - alat ne tvrdi da je navedena norma ispravna za slučaj.
+export const OZO_NORME_KATALOG: string[] = [
+  "HRN EN 388 (zaštitne rukavice - mehanički rizici)",
+  "HRN EN 166 (zaštita očiju)",
+  "HRN EN ISO 20345 (zaštitna obuća)",
+  "HRN EN 352 (zaštita sluha)",
+  "HRN EN 149 (zaštitne maske za disanje)",
+  "HRN EN 397 (zaštitne kacige)",
+  "HRN EN 361 (sigurnosni pojas/pribor za rad na visini)",
+  "HRN EN 343 (zaštita od lošeg vremena)",
+  "HRN EN ISO 11612 (zaštita od topline i plamena)",
+];
+
 export const ISPITIVANJA_KATALOG: string[] = [
   "Ispitivanje električnih instalacija",
   "Ispitivanje radne opreme",

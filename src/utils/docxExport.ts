@@ -13,6 +13,7 @@ import {
 import { saveAs } from "file-saver";
 import { izracunajRazinu, razinaPosla } from "../types";
 import type { Ispitivanje, MjeraPlana, Poslodavac, Posao, RadnaOprema, RadnoMjesto } from "../types";
+import { ERGONOMIJA_KATEGORIJE } from "../data/ergonomijaKategorije";
 
 const RAZINA_TEKST: Record<string, string> = {
   mali: "Mali rizik",
@@ -190,7 +191,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
       : new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
           rows: [
-            naslovTablice(["Posao", "Mjera", "Rok", "Odgovorna osoba", "Kontrola"]),
+            naslovTablice(["Posao", "Mjera", "Rok", "Odgovorna osoba", "Kontrola", "Periodika"]),
             ...mjerePlana.map((m) =>
               redak([
                 celija(poslovi.find((p) => p.id === m.posaoId)?.naziv || "-"),
@@ -198,6 +199,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
                 celija(m.rok),
                 celija(m.odgovornaOsoba),
                 celija(m.kontrola),
+                celija(m.periodika || "-"),
               ])
             ),
           ],
@@ -222,14 +224,43 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
       .map((r) => ({ posao: p, r }))
   );
   const posloviPosebniUvjeti = poslovi.filter((p) => p.posebniUvjeti);
+  const rasporedPoslova = radnaMjesta.flatMap((rm) =>
+    poslovi
+      .filter((p) => p.radnaMjestaIds.includes(rm.id))
+      .map((p) => ({ radnoMjesto: rm, posao: p }))
+  );
+  const posloviNaporVidGovor = poslovi.map((p) => ({
+    posao: p,
+    vid: p.rizici.some((r) => r.kategorija === "napor" && r.path[0] === "3"),
+    govor: p.rizici.some((r) => r.kategorija === "napor" && r.path[0] === "4"),
+  }));
+  const posloviRacunalo = poslovi.filter((p) => p.koristiRacunalo4h);
 
   const cjelina5: (Paragraph | Table)[] = [
     new Paragraph({ heading: HeadingLevel.HEADING_1, text: "5. Prilozi" }),
-    new Paragraph({ heading: HeadingLevel.HEADING_2, text: "5.1 Popis radne opreme" }),
+    new Paragraph({ heading: HeadingLevel.HEADING_2, text: "5.1 Raspored poslova po radnim mjestima" }),
+    rasporedPoslova.length === 0
+      ? new Paragraph({ text: "Nema povezanih radnih mjesta i poslova." })
+      : new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            naslovTablice(["Radno mjesto", "Posao"]),
+            ...rasporedPoslova.map(({ radnoMjesto, posao }) =>
+              redak([celija(radnoMjesto.naziv), celija(posao.naziv)])
+            ),
+          ],
+        }),
+    new Paragraph({ text: "" }),
+    new Paragraph({ heading: HeadingLevel.HEADING_2, text: "5.2 Popis radne opreme" }),
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       rows: [
-        naslovTablice(["Radna oprema", "Koristi se na poslovima"]),
+        naslovTablice([
+          "Radna oprema",
+          "Koristi se na poslovima",
+          "Period pregleda (mjeseci)",
+          "Datum posljednjeg pregleda",
+        ]),
         ...popisOpreme.map((o) =>
           redak([
             celija(o.naziv),
@@ -239,6 +270,8 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
                 .map((p) => p.naziv)
                 .join(", ")
             ),
+            celija(o.periodPregledaMjeseci != null ? String(o.periodPregledaMjeseci) : "-"),
+            celija(o.datumPosljednjegPregleda || "-"),
           ])
         ),
       ],
@@ -246,12 +279,12 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
     new Paragraph({ text: "" }),
     new Paragraph({
       heading: HeadingLevel.HEADING_2,
-      text: "5.2 Popis poslova za koje je određena OZO i popis OZO (provjeriti)",
+      text: "5.3 Popis poslova za koje je određena OZO i popis OZO (provjeriti)",
     }),
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       rows: [
-        naslovTablice(["Posao", "Rizik", "Razina", "OZO"]),
+        naslovTablice(["Posao", "Rizik", "Razina", "OZO", "Norma"]),
         ...posloviSaOzo.flatMap((p) =>
           p.rizici
             .filter((r) => {
@@ -264,6 +297,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
                 celija(r.naziv),
                 celija(RAZINA_TEKST[izracunajRazinu(r.vjerojatnost, r.posljedica)!]),
                 celija(ozoTekst(r, "(provjeriti)")),
+                celija(r.ozoNijePotrebna ? "-" : r.ozoNorma || "(provjeriti)"),
               ])
             )
         ),
@@ -272,7 +306,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
     new Paragraph({ text: "" }),
     new Paragraph({
       heading: HeadingLevel.HEADING_2,
-      text: "5.3 Popis potrebnih liječničkih pregleda (provjeriti)",
+      text: "5.4 Popis potrebnih liječničkih pregleda (provjeriti)",
     }),
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
@@ -290,7 +324,7 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
     new Paragraph({ text: "" }),
     new Paragraph({
       heading: HeadingLevel.HEADING_2,
-      text: "5.4 Sigurnosni podaci izvora kemijskih i fizikalnih štetnosti",
+      text: "5.5 Sigurnosni podaci izvora kemijskih i fizikalnih štetnosti",
     }),
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
@@ -304,21 +338,74 @@ export async function izveziDocx(data: PodaciZaIzvoz) {
     new Paragraph({ text: "" }),
     new Paragraph({
       heading: HeadingLevel.HEADING_2,
-      text: "5.5 Popis potrebnih ispitivanja (provjeriti)",
+      text: "5.6 Popis potrebnih ispitivanja (provjeriti)",
     }),
     ispitivanja.length === 0
       ? new Paragraph({ text: "Nema unesenih ispitivanja." })
       : new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
           rows: [
-            naslovTablice(["Ispitivanje", "Napomena"]),
-            ...ispitivanja.map((i) => redak([celija(i.naziv), celija(i.napomena || "-")])),
+            naslovTablice(["Ispitivanje", "Napomena", "Period (mjeseci)", "Datum posljednjeg"]),
+            ...ispitivanja.map((i) =>
+              redak([
+                celija(i.naziv),
+                celija(i.napomena || "-"),
+                celija(i.periodMjeseci != null ? String(i.periodMjeseci) : "-"),
+                celija(i.datumPosljednjeg || "-"),
+              ])
+            ),
           ],
         }),
     new Paragraph({ text: "" }),
     new Paragraph({
       heading: HeadingLevel.HEADING_2,
-      text: "5.6 Popis poslova s posebnim uvjetima rada (provjeriti)",
+      text: "5.7 Popis poslova izloženih naporu vida i/ili govora",
+    }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        naslovTablice(["Posao", "Izloženost naporu vida", "Izloženost naporu govora"]),
+        ...posloviNaporVidGovor.map(({ posao, vid, govor }) =>
+          redak([celija(posao.naziv), celija(vid ? "Da" : "Ne"), celija(govor ? "Da" : "Ne")])
+        ),
+      ],
+    }),
+    new Paragraph({ text: "" }),
+    new Paragraph({ heading: HeadingLevel.HEADING_2, text: "5.8 Ergonomija rada na računalu" }),
+    ...(posloviRacunalo.length === 0
+      ? [new Paragraph({ text: "Nema poslova označenih kao rad na računalu 4+ sati dnevno." })]
+      : posloviRacunalo.flatMap((p) => [
+          new Paragraph({ text: p.naziv, heading: HeadingLevel.HEADING_3 }),
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+              naslovTablice(["Kategorija", "Zadovoljava", "Napomena"]),
+              ...ERGONOMIJA_KATEGORIJE.map((kategorija) => {
+                const odgovor = p.ergonomijaOdgovori[kategorija] ?? {
+                  zadovoljava: null,
+                  napomena: "",
+                };
+                return redak([
+                  celija(kategorija),
+                  celija(
+                    odgovor.zadovoljava === "da"
+                      ? "Da"
+                      : odgovor.zadovoljava === "ne"
+                        ? "Ne"
+                        : odgovor.zadovoljava === "np"
+                          ? "Nije primjenjivo"
+                          : "-"
+                  ),
+                  celija(odgovor.napomena || "-"),
+                ]);
+              }),
+            ],
+          }),
+          new Paragraph({ text: "" }),
+        ])),
+    new Paragraph({
+      heading: HeadingLevel.HEADING_2,
+      text: "5.9 Popis poslova s posebnim uvjetima rada (provjeriti)",
     }),
     posloviPosebniUvjeti.length === 0
       ? new Paragraph({ text: "Nije označen nijedan posao." })

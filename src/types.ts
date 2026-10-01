@@ -29,6 +29,15 @@ export interface Posao {
   rizici: Rizik[];
   posebniUvjeti: boolean; // posao s posebnim uvjetima rada - stručnjak označava ručno, provjeriti
   posebniUvjetiNapomena: string;
+  koristiRacunalo4h: boolean; // rad na računalu 4 ili više sati dnevno - uključuje ergonomski checklist
+  ergonomijaOdgovori: Record<string, ErgonomijaOdgovor>;
+}
+
+export type ErgonomijaZadovoljava = "da" | "ne" | "np";
+
+export interface ErgonomijaOdgovor {
+  zadovoljava: ErgonomijaZadovoljava | null;
+  napomena: string;
 }
 
 export interface Rizik {
@@ -43,14 +52,18 @@ export interface Rizik {
   tockaPravilnika: string; // točka čl. 3 Pravilnika o poslovima s posebnim uvjetima rada (NN 5/84), ako primjenjivo
   ozoPrijedlog: string;
   ozoNijePotrebna: boolean;
+  ozoNorma: string; // npr. "HRN EN 388" - prijedlog, provjeriti primjenjivost
   lijecnickiPregled: string;
   napomena?: string;
 }
+
 
 export interface RadnaOprema {
   id: string;
   naziv: string;
   prilagodeno: boolean; // true ako ju je dodao korisnik, ne iz unaprijed zadanog popisa
+  periodPregledaMjeseci: number | null;
+  datumPosljednjegPregleda: string;
 }
 
 export interface MjeraPlana {
@@ -60,12 +73,15 @@ export interface MjeraPlana {
   rok: string;
   odgovornaOsoba: string;
   kontrola: string;
+  periodika: string;
 }
 
 export interface Ispitivanje {
   id: string;
   naziv: string;
   napomena: string;
+  periodMjeseci: number | null;
+  datumPosljednjeg: string;
 }
 
 export interface ProcjenaState {

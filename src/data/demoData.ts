@@ -44,12 +44,24 @@ function rizik(
     tockaPravilnika: "",
     ozoPrijedlog: "",
     ozoNijePotrebna: false,
+    ozoNorma: "",
     lijecnickiPregled: "",
   };
 }
 
-function posao(p: Omit<Posao, "posebniUvjeti" | "posebniUvjetiNapomena">): Posao {
-  return { ...p, posebniUvjeti: false, posebniUvjetiNapomena: "" };
+function posao(
+  p: Omit<
+    Posao,
+    "posebniUvjeti" | "posebniUvjetiNapomena" | "koristiRacunalo4h" | "ergonomijaOdgovori"
+  > & { koristiRacunalo4h?: boolean }
+): Posao {
+  return {
+    ...p,
+    posebniUvjeti: false,
+    posebniUvjetiNapomena: "",
+    koristiRacunalo4h: p.koristiRacunalo4h ?? false,
+    ergonomijaOdgovori: {},
+  };
 }
 
 export const DEMO_POSLOVI: Posao[] = [
@@ -58,6 +70,7 @@ export const DEMO_POSLOVI: Posao[] = [
     naziv: "Upravljanje i organizacija rada",
     radnaMjestaIds: ["rm-direktor"],
     radnaOpremaIds: ["ro-racunalo"],
+    koristiRacunalo4h: true,
     rizici: [
       rizik("napor", ["2", "2.4", "2.4.1"], 2, 2, "r1"),
       rizik("napor", ["2", "2.7", "2.7.1"], 2, 1, "r2"),
@@ -68,6 +81,7 @@ export const DEMO_POSLOVI: Posao[] = [
     naziv: "Administrativno-uredski poslovi",
     radnaMjestaIds: ["rm-administrator", "rm-direktor"],
     radnaOpremaIds: ["ro-racunalo", "ro-printer"],
+    koristiRacunalo4h: true,
     rizici: [rizik("napor", ["3"], 2, 1, "r3")],
   }),
   posao({
@@ -133,7 +147,15 @@ export const DEMO_POSLOVI: Posao[] = [
   }),
 ];
 
-export const DEMO_RADNA_OPREMA = BASE_RADNA_OPREMA;
+const DEMO_PERIODIKA: Record<string, { periodPregledaMjeseci: number; datumPosljednjegPregleda: string }> = {
+  "ro-pekarska-pec": { periodPregledaMjeseci: 12, datumPosljednjegPregleda: "2025-11-15" },
+  "ro-paletni-viljuskar": { periodPregledaMjeseci: 6, datumPosljednjegPregleda: "2026-03-01" },
+  "ro-dostavno-vozilo": { periodPregledaMjeseci: 12, datumPosljednjegPregleda: "2026-01-20" },
+};
+
+export const DEMO_RADNA_OPREMA = BASE_RADNA_OPREMA.map((o) =>
+  DEMO_PERIODIKA[o.id] ? { ...o, ...DEMO_PERIODIKA[o.id] } : o
+);
 
 export const DEMO_MJERE_PLANA: MjeraPlana[] = [
   {
@@ -143,6 +165,7 @@ export const DEMO_MJERE_PLANA: MjeraPlana[] = [
     rok: "u roku 30 dana",
     odgovornaOsoba: "Direktor",
     kontrola: "Vizualna kontrola pri svakoj smjeni, evidencija u knjizi održavanja",
+    periodika: "mjesečno",
   },
   {
     id: "m2",
@@ -151,5 +174,6 @@ export const DEMO_MJERE_PLANA: MjeraPlana[] = [
     rok: "u roku 60 dana",
     odgovornaOsoba: "Direktor",
     kontrola: "Potvrda o završenoj edukaciji, godišnja provjera",
+    periodika: "godišnje",
   },
 ];

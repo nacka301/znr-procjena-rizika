@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
+  ErgonomijaOdgovor,
   Ispitivanje,
   KategorijaRizika,
   MjeraPlana,
@@ -60,7 +61,15 @@ interface StoreState {
   toggleVeza: (posaoId: string, radnoMjestoId: string) => void;
 
   addRadnaOpremaOpcija: (naziv: string) => string;
+  updateRadnaOprema: (id: string, patch: Partial<RadnaOprema>) => void;
   toggleOpremaNaPoslu: (posaoId: string, opremaId: string) => void;
+
+  toggleKoristiRacunalo4h: (posaoId: string) => void;
+  setErgonomijaOdgovor: (
+    posaoId: string,
+    kategorija: string,
+    patch: Partial<ErgonomijaOdgovor>
+  ) => void;
 
   addRizik: (posaoId: string, kategorija: KategorijaRizika, path: string[]) => void;
   updateRizik: (posaoId: string, rizikId: string, patch: Partial<Rizik>) => void;
@@ -100,9 +109,41 @@ export const useStore = create<StoreState>()(
             p.id === posaoId ? { ...p, posebniUvjetiNapomena: napomena } : p
           ),
         })),
+      toggleKoristiRacunalo4h: (posaoId) =>
+        set((s) => ({
+          poslovi: s.poslovi.map((p) =>
+            p.id === posaoId ? { ...p, koristiRacunalo4h: !p.koristiRacunalo4h } : p
+          ),
+        })),
+      setErgonomijaOdgovor: (posaoId, kategorija, patch) =>
+        set((s) => ({
+          poslovi: s.poslovi.map((p) => {
+            if (p.id !== posaoId) return p;
+            const postojeci: ErgonomijaOdgovor = p.ergonomijaOdgovori[kategorija] ?? {
+              zadovoljava: null,
+              napomena: "",
+            };
+            return {
+              ...p,
+              ergonomijaOdgovori: {
+                ...p.ergonomijaOdgovori,
+                [kategorija]: { ...postojeci, ...patch },
+              },
+            };
+          }),
+        })),
       addIspitivanje: (naziv) =>
         set((s) => ({
-          ispitivanja: [...s.ispitivanja, { id: noviId("isp"), naziv, napomena: "" }],
+          ispitivanja: [
+            ...s.ispitivanja,
+            {
+              id: noviId("isp"),
+              naziv,
+              napomena: "",
+              periodMjeseci: null,
+              datumPosljednjeg: "",
+            },
+          ],
         })),
       updateIspitivanje: (id, patch) =>
         set((s) => ({
@@ -149,6 +190,8 @@ export const useStore = create<StoreState>()(
               rizici: [],
               posebniUvjeti: false,
               posebniUvjetiNapomena: "",
+              koristiRacunalo4h: false,
+              ergonomijaOdgovori: {},
             },
           ],
         }));
@@ -192,10 +235,23 @@ export const useStore = create<StoreState>()(
       addRadnaOpremaOpcija: (naziv) => {
         const id = noviId("ro");
         set((s) => ({
-          radnaOprema: [...s.radnaOprema, { id, naziv, prilagodeno: true }],
+          radnaOprema: [
+            ...s.radnaOprema,
+            {
+              id,
+              naziv,
+              prilagodeno: true,
+              periodPregledaMjeseci: null,
+              datumPosljednjegPregleda: "",
+            },
+          ],
         }));
         return id;
       },
+      updateRadnaOprema: (id, patch) =>
+        set((s) => ({
+          radnaOprema: s.radnaOprema.map((o) => (o.id === id ? { ...o, ...patch } : o)),
+        })),
       toggleOpremaNaPoslu: (posaoId, opremaId) =>
         set((s) => ({
           poslovi: s.poslovi.map((p) => {
@@ -224,6 +280,7 @@ export const useStore = create<StoreState>()(
           tockaPravilnika: "",
           ozoPrijedlog: "",
           ozoNijePotrebna: false,
+          ozoNorma: "",
           lijecnickiPregled: "",
         };
         set((s) => ({

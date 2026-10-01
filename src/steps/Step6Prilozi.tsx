@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import { useStore } from "../state/store";
 import { izracunajRazinu } from "../types";
+import type { ErgonomijaZadovoljava } from "../types";
 import RiskBadge from "../components/RiskBadge";
 import PrijedlogChips from "../components/PrijedlogChips";
 import { ISPITIVANJA_KATALOG } from "../data/prijedloziKatalozi";
+import { ERGONOMIJA_KATEGORIJE } from "../data/ergonomijaKategorije";
 
 function NapomenaPolje({ naziv }: { naziv: string }) {
   const tekst = useStore((s) => s.napomenePriloga[naziv] ?? "");
@@ -23,14 +25,38 @@ function NapomenaPolje({ naziv }: { naziv: string }) {
 
 export default function Step6Prilozi() {
   const poslovi = useStore((s) => s.poslovi);
+  const radnaMjesta = useStore((s) => s.radnaMjesta);
   const radnaOprema = useStore((s) => s.radnaOprema);
+  const updateRadnaOprema = useStore((s) => s.updateRadnaOprema);
   const togglePosebniUvjeti = useStore((s) => s.togglePosebniUvjeti);
   const setPosebniUvjetiNapomena = useStore((s) => s.setPosebniUvjetiNapomena);
+  const setErgonomijaOdgovor = useStore((s) => s.setErgonomijaOdgovor);
   const ispitivanja = useStore((s) => s.ispitivanja);
   const addIspitivanje = useStore((s) => s.addIspitivanje);
   const updateIspitivanje = useStore((s) => s.updateIspitivanje);
   const removeIspitivanje = useStore((s) => s.removeIspitivanje);
   const [novoIspitivanje, setNovoIspitivanje] = useState("");
+
+  const rasporedPoslova = useMemo(() => {
+    return radnaMjesta.flatMap((rm) =>
+      poslovi
+        .filter((p) => p.radnaMjestaIds.includes(rm.id))
+        .map((p) => ({ radnoMjesto: rm, posao: p }))
+    );
+  }, [radnaMjesta, poslovi]);
+
+  const posloviNaporVidGovor = useMemo(() => {
+    return poslovi.map((p) => ({
+      posao: p,
+      vid: p.rizici.some((r) => r.kategorija === "napor" && r.path[0] === "3"),
+      govor: p.rizici.some((r) => r.kategorija === "napor" && r.path[0] === "4"),
+    }));
+  }, [poslovi]);
+
+  const posloviRacunalo = useMemo(
+    () => poslovi.filter((p) => p.koristiRacunalo4h),
+    [poslovi]
+  );
 
   const popisOpreme = useMemo(() => {
     return radnaOprema
@@ -89,7 +115,33 @@ export default function Step6Prilozi() {
       </div>
 
       <div className="card">
-        <h2>1. Popis radne opreme</h2>
+        <h2>1. Raspored poslova po radnim mjestima</h2>
+        <p className="hint">Izvedeno iz matrice radno mjesto × posao (korak "Poslovi").</p>
+        {rasporedPoslova.length === 0 && (
+          <div className="empty-state">Nema povezanih radnih mjesta i poslova.</div>
+        )}
+        {rasporedPoslova.length > 0 && (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Radno mjesto</th>
+                <th>Posao</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rasporedPoslova.map(({ radnoMjesto, posao }) => (
+                <tr key={radnoMjesto.id + posao.id}>
+                  <td>{radnoMjesto.naziv}</td>
+                  <td>{posao.naziv}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="card">
+        <h2>2. Popis radne opreme</h2>
         {popisOpreme.length === 0 && <div className="empty-state">Nema unesene radne opreme.</div>}
         {popisOpreme.length > 0 && (
           <table className="data-table">
@@ -97,6 +149,8 @@ export default function Step6Prilozi() {
               <tr>
                 <th>Radna oprema</th>
                 <th>Koristi se na poslovima</th>
+                <th>Period pregleda (mjeseci)</th>
+                <th>Datum posljednjeg pregleda</th>
               </tr>
             </thead>
             <tbody>
@@ -104,6 +158,30 @@ export default function Step6Prilozi() {
                 <tr key={oprema.id}>
                   <td>{oprema.naziv}</td>
                   <td>{pz.map((p) => p.naziv).join(", ")}</td>
+                  <td>
+                    <input
+                      type="number"
+                      min={0}
+                      value={oprema.periodPregledaMjeseci ?? ""}
+                      onChange={(e) =>
+                        updateRadnaOprema(oprema.id, {
+                          periodPregledaMjeseci: e.target.value ? Number(e.target.value) : null,
+                        })
+                      }
+                      style={{ width: 70 }}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="date"
+                      value={oprema.datumPosljednjegPregleda}
+                      onChange={(e) =>
+                        updateRadnaOprema(oprema.id, {
+                          datumPosljednjegPregleda: e.target.value,
+                        })
+                      }
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -113,7 +191,7 @@ export default function Step6Prilozi() {
       </div>
 
       <div className="card">
-        <h2>2. Popis poslova za koje je određena OZO i popis OZO</h2>
+        <h2>3. Popis poslova za koje je određena OZO i popis OZO</h2>
         {ozoPoPoslovima.length === 0 && (
           <div className="empty-state">Nema poslova sa srednjim ili velikim rizikom.</div>
         )}
@@ -127,6 +205,9 @@ export default function Step6Prilozi() {
                   <th>Razina</th>
                   <th>
                     OZO <span className="tag-prijedlog">provjeriti</span>
+                  </th>
+                  <th>
+                    Norma <span className="tag-prijedlog">provjeriti</span>
                   </th>
                 </tr>
               </thead>
@@ -146,6 +227,7 @@ export default function Step6Prilozi() {
                         r.ozoPrijedlog || <span className="hint">(nije uneseno)</span>
                       )}
                     </td>
+                    <td>{r.ozoNijePotrebna ? "-" : r.ozoNorma || <span className="hint">(nije uneseno)</span>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -156,7 +238,7 @@ export default function Step6Prilozi() {
       </div>
 
       <div className="card">
-        <h2>3. Popis potrebnih liječničkih pregleda</h2>
+        <h2>4. Popis potrebnih liječničkih pregleda</h2>
         {lijecnickiPregledi.length === 0 && (
           <div className="empty-state">Nema poslova s velikim rizikom.</div>
         )}
@@ -188,7 +270,7 @@ export default function Step6Prilozi() {
       </div>
 
       <div className="card">
-        <h2>4. Sigurnosni podaci izvora kemijskih i fizikalnih štetnosti</h2>
+        <h2>5. Sigurnosni podaci izvora kemijskih i fizikalnih štetnosti</h2>
         <p className="hint">
           Popis izveden iz odabranih štetnosti u analizi poslova (kategorije "Kemijske štetnosti"
           i "Fizikalne štetnosti" iz Priloga III). Sigurnosno-tehničke listove i konkretne podatke
@@ -221,7 +303,7 @@ export default function Step6Prilozi() {
       </div>
 
       <div className="card">
-        <h2>5. Popis potrebnih ispitivanja</h2>
+        <h2>6. Popis potrebnih ispitivanja</h2>
         <p className="hint">
           Rokovi i vrste ispitivanja radne opreme i radnog okoliša nisu pouzdano preuzeti iz
           propisa — unesite ručno i{" "}
@@ -231,20 +313,37 @@ export default function Step6Prilozi() {
         {ispitivanja.map((isp) => (
           <div
             key={isp.id}
-            style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}
+            style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}
           >
             <input
               type="text"
               value={isp.naziv}
               onChange={(e) => updateIspitivanje(isp.id, { naziv: e.target.value })}
-              style={{ flex: 1 }}
+              style={{ flex: 2, minWidth: 160 }}
             />
             <input
               type="text"
               value={isp.napomena}
               onChange={(e) => updateIspitivanje(isp.id, { napomena: e.target.value })}
-              placeholder="napomena / rok"
-              style={{ flex: 1 }}
+              placeholder="napomena"
+              style={{ flex: 1, minWidth: 120 }}
+            />
+            <input
+              type="number"
+              min={0}
+              value={isp.periodMjeseci ?? ""}
+              onChange={(e) =>
+                updateIspitivanje(isp.id, {
+                  periodMjeseci: e.target.value ? Number(e.target.value) : null,
+                })
+              }
+              placeholder="period (mj.)"
+              style={{ width: 90 }}
+            />
+            <input
+              type="date"
+              value={isp.datumPosljednjeg}
+              onChange={(e) => updateIspitivanje(isp.id, { datumPosljednjeg: e.target.value })}
             />
             <button className="btn btn-sm btn-danger" onClick={() => removeIspitivanje(isp.id)}>
               Ukloni
@@ -276,7 +375,106 @@ export default function Step6Prilozi() {
       </div>
 
       <div className="card">
-        <h2>6. Popis poslova s posebnim uvjetima rada</h2>
+        <h2>7. Popis poslova izloženih naporu vida i/ili govora</h2>
+        <p className="hint">
+          Automatski izvedeno iz odabranih napora "Napori vida" i "Napori govora" (Prilog III) u
+          analizi poslova.
+        </p>
+        {posloviNaporVidGovor.length === 0 && (
+          <div className="empty-state">Nema unesenih poslova.</div>
+        )}
+        {posloviNaporVidGovor.length > 0 && (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Posao</th>
+                <th>Izloženost naporu vida</th>
+                <th>Izloženost naporu govora</th>
+              </tr>
+            </thead>
+            <tbody>
+              {posloviNaporVidGovor.map(({ posao, vid, govor }) => (
+                <tr key={posao.id}>
+                  <td>{posao.naziv}</td>
+                  <td>{vid ? "Da" : "Ne"}</td>
+                  <td>{govor ? "Da" : "Ne"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="card">
+        <h2>8. Ergonomija rada na računalu</h2>
+        <p className="hint">
+          Kratki checklist za poslove označene kao "rad na računalu 4 ili više sati dnevno" (korak
+          "Analiza posla"). Status i napomena su uredivi; puni pravni tekst zahtjeva treba
+          provjeriti u izvornom propisu.
+        </p>
+        {posloviRacunalo.length === 0 && (
+          <div className="empty-state">
+            Nema poslova označenih kao rad na računalu 4+ sati dnevno.
+          </div>
+        )}
+        {posloviRacunalo.map((posao) => (
+          <div key={posao.id} style={{ marginBottom: 14 }}>
+            <strong>{posao.naziv}</strong>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Kategorija</th>
+                  <th>Zadovoljava</th>
+                  <th>Napomena</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ERGONOMIJA_KATEGORIJE.map((kategorija) => {
+                  const odgovor = posao.ergonomijaOdgovori[kategorija] ?? {
+                    zadovoljava: null,
+                    napomena: "",
+                  };
+                  return (
+                    <tr key={kategorija}>
+                      <td>{kategorija}</td>
+                      <td>
+                        <select
+                          value={odgovor.zadovoljava ?? ""}
+                          onChange={(e) =>
+                            setErgonomijaOdgovor(posao.id, kategorija, {
+                              zadovoljava: (e.target.value || null) as ErgonomijaZadovoljava | null,
+                            })
+                          }
+                        >
+                          <option value="">— odaberi —</option>
+                          <option value="da">Da</option>
+                          <option value="ne">Ne</option>
+                          <option value="np">Nije primjenjivo</option>
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          value={odgovor.napomena}
+                          onChange={(e) =>
+                            setErgonomijaOdgovor(posao.id, kategorija, {
+                              napomena: e.target.value,
+                            })
+                          }
+                          style={{ width: "100%" }}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <h2>9. Popis poslova s posebnim uvjetima rada</h2>
         <p className="hint">
           Odluku o tome koji su poslovi s posebnim uvjetima rada donosi stručnjak.{" "}
           <span className="tag-provjeriti">provjeriti</span>
