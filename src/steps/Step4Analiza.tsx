@@ -3,6 +3,7 @@ import { useStore } from "../state/store";
 import { izracunajRazinu, razinaPosla, type Posljedica, type Vjerojatnost } from "../types";
 import RiskBadge from "../components/RiskBadge";
 import PrilogIIIPicker from "../components/PrilogIIIPicker";
+import PsihosocijalniUpitnik from "../components/PsihosocijalniUpitnik";
 
 const VJEROJATNOST_LABEL: Record<Vjerojatnost, string> = {
   1: "1 – Malo vjerojatno",
@@ -29,6 +30,7 @@ export default function Step4Analiza() {
   const toggleKoristiRacunalo4h = useStore((s) => s.toggleKoristiRacunalo4h);
   const [novaOprema, setNovaOprema] = useState("");
   const [prikaziPicker, setPrikaziPicker] = useState(false);
+  const [upitnikZaRizikId, setUpitnikZaRizikId] = useState<string | null>(null);
 
   const posao = poslovi.find((p) => p.id === aktivniPosaoId) ?? poslovi[0] ?? null;
 
@@ -215,6 +217,30 @@ export default function Step4Analiza() {
                   </select>
                 </div>
               </div>
+
+              {r.kategorija === "napor" && (
+                <div style={{ marginBottom: 10 }}>
+                  <button
+                    className="btn btn-sm"
+                    onClick={() =>
+                      setUpitnikZaRizikId(upitnikZaRizikId === r.id ? null : r.id)
+                    }
+                  >
+                    {upitnikZaRizikId === r.id
+                      ? "Zatvori upitnik"
+                      : "Izračunaj vjerojatnost iz upitnika (psihosocijalni rizici)"}
+                  </button>
+                  {upitnikZaRizikId === r.id && (
+                    <PsihosocijalniUpitnik
+                      onOdustani={() => setUpitnikZaRizikId(null)}
+                      onPrimijeni={(vjerojatnost) => {
+                        updateRizik(posao.id, r.id, { vjerojatnost });
+                        setUpitnikZaRizikId(null);
+                      }}
+                    />
+                  )}
+                </div>
+              )}
 
               <div className="field-row">
                 <label>
