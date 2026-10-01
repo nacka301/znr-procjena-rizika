@@ -1,32 +1,30 @@
-# React + TypeScript + Vite
+# Procjena rizika – prototip
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Klikabilan prototip web alata za izradu procjene rizika (ZNR) prema Pravilniku o izradi
+procjene rizika (NN 112/14, NN 129/19). Vite + React + TypeScript, bez backenda, svi podaci u
+localStorage preglednika. Vidi [DOMAIN_NOTES.md](./DOMAIN_NOTES.md) za pravni izvor i popis onoga
+što je potvrđeno izvorom nasuprot onome što je uredivi prijedlog ("provjeriti prije korištenja").
 
-Currently, two official plugins are available:
+## Pokretanje
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Otvara se na `http://localhost:5173`.
+
+## Izvoz
+
+```bash
+npm run build
+```
+
+Statični `dist/` direktorij, spreman za deploy na Vercel (ili bilo koji statični hosting) bez
+dodatne konfiguracije.
+
+## Napomena
+
+Alat priprema i računa (matrica rizika, automatski prilozi); stručnjak uvijek sam odlučuje
+(vjerojatnost, posljedica, OZO, poslovi s posebnim uvjetima rada). Nema AI-generiranih
+zaključaka o rizicima. Svi demo podaci ("Primjer d.o.o.") su izmišljeni i jasno označeni.
