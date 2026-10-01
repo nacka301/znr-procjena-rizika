@@ -42,7 +42,7 @@ export default function Step3Poslovi({
   return (
     <div>
       <div className="page-header">
-        <div className="eyebrow">Cjelina 2-3 · Najvažniji zaslon</div>
+        <div className="eyebrow">Cjelina 2-3 · Prikupljanje podataka</div>
         <h1>Poslovi i povezivanje s radnim mjestima</h1>
         <p className="hint">
           Procjena rizika radi se <strong>po poslovima</strong>, ne po radnim mjestima. Jedno

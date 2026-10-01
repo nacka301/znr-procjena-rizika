@@ -214,7 +214,7 @@ export default function Step6Prilozi() {
         <h2>5. Popis potrebnih ispitivanja</h2>
         <p className="hint">
           Rokovi i vrste ispitivanja radne opreme i radnog okoliša nisu pouzdano preuzeti iz
-          propisa (vidi DOMAIN_NOTES.md) — unesite ručno i{" "}
+          propisa — unesite ručno i{" "}
           <span className="tag-provjeriti">provjerite prije korištenja</span>.
         </p>
         {ispitivanja.length === 0 && <div className="empty-state">Nema unesenih ispitivanja.</div>}
@@ -259,9 +259,8 @@ export default function Step6Prilozi() {
       <div className="card">
         <h2>6. Popis poslova s posebnim uvjetima rada</h2>
         <p className="hint">
-          Pravilnik o poslovima s posebnim uvjetima rada (NN 5/84) star je propis čiji noviji
-          pročišćeni tekst nije pouzdano dohvaćen — odluku o tome koji su poslovi s posebnim
-          uvjetima rada donosi stručnjak, <span className="tag-provjeriti">provjeriti</span>.
+          Odluku o tome koji su poslovi s posebnim uvjetima rada donosi stručnjak.{" "}
+          <span className="tag-provjeriti">provjeriti</span>
         </p>
         <table className="data-table">
           <thead>
