@@ -3,7 +3,7 @@ import { Download, Printer } from "lucide-react";
 import { useStore } from "../state/store";
 import { izracunajRazinu, razinaPosla } from "../types";
 import type { ReactNode } from "react";
-import { izveziDocx } from "../utils/docxExport";
+import { izveziDocx, ODGOVORNOST_STRUCNJAKA } from "../utils/docxExport";
 import { ERGONOMIJA_KATEGORIJE } from "../data/ergonomijaKategorije";
 import { jePosebniUvjeti, obrazlozenjePosebniUvjeti } from "../utils/posebniUvjeti";
 import { ozoTekstSNormama } from "../utils/ozo";
@@ -196,6 +196,11 @@ export default function Step7Pregled() {
           ) : null}
           <p className="mt-2 font-sans text-[8pt] leading-snug text-slate-500">{DISCLAIMER}</p>
         </header>
+
+        {/* Odgovornost stručnjaka - jedna linija pri vrhu dokumenta, ista kao na kraju Word izvoza. */}
+        <p className="mb-6 border-y border-slate-200 py-2 text-[9pt] italic leading-snug text-slate-700">
+          {ODGOVORNOST_STRUCNJAKA}
+        </p>
 
         {/* Sadržaj */}
         <nav className="mb-8">

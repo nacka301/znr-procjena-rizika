@@ -28,7 +28,7 @@ export const STORE_NAME = "znr-procjena-rizika";
 // Verzija OBLIKA spremljenog stanja. Migracija nikad ne odbacuje podatke - samo nedostajuća
 // polja dobivaju zadane vrijednosti (normalizirajUcitanoStanje), pa staro stanje ne može srušiti
 // nijedan korak.
-const STORE_VERSION = 2;
+export const STORE_VERSION = 2;
 
 const PRAZAN_POSLODAVAC: Poslodavac = {
   naziv: "",
@@ -146,7 +146,7 @@ function normalizaPoslodavac(raw: unknown): Poslodavac {
   };
 }
 
-function normalizirajUcitanoStanje(raw: unknown): Partial<StoreState> {
+export function normalizirajUcitanoStanje(raw: unknown): Partial<StoreState> {
   if (!raw || typeof raw !== "object") return {};
   const s = raw as Partial<StoreState>;
   return {
@@ -162,10 +162,25 @@ function normalizirajUcitanoStanje(raw: unknown): Partial<StoreState> {
     zadnjiKorak: typeof s.zadnjiKorak === "string" ? s.zadnjiKorak : "poslodavac",
     korisnikMijenjao: s.korisnikMijenjao === true,
     primjerVerzija: typeof s.primjerVerzija === "number" ? s.primjerVerzija : 0,
+    // Novo polje: starija stanja ga nemaju, pa uvodni okvir dobiju ponovno. Zato nije potrebno
+    // podizati STORE_VERSION - nedostajuće polje ovdje već dobiva sigurnu zadanu vrijednost.
+    uvodZatvoren: s.uvodZatvoren === true,
   };
 }
 
-interface StoreState {
+/** Podaci procjene bez radnji - ono što ide u datoteku pri "Spremi u datoteku". */
+export type PodaciStanja = Pick<
+  StoreState,
+  | "poslodavac"
+  | "radnaMjesta"
+  | "poslovi"
+  | "radnaOprema"
+  | "mjerePlana"
+  | "ispitivanja"
+  | "napomenePriloga"
+>;
+
+export interface StoreState {
   poslodavac: Poslodavac;
   radnaMjesta: RadnoMjesto[];
   poslovi: Posao[];
@@ -180,6 +195,10 @@ interface StoreState {
   korisnikMijenjao: boolean;
   /** Verzija primjera iz koje je stanje učitano. */
   primjerVerzija: number;
+  /** Uvodni okvir na prvom ekranu: kad ga korisnik zatvori, više se ne vraća. */
+  uvodZatvoren: boolean;
+  zatvoriUvod: () => void;
+  zamijeniStanje: (podaci: unknown) => void;
   setZadnjiKorak: (korak: string) => void;
   setAktivniPosaoId: (id: string | null) => void;
   setNapomenaPriloga: (kljuc: string, tekst: string) => void;
@@ -249,6 +268,27 @@ export const useStore = create<StoreState>()(
       zadnjiKorak: "poslodavac",
       korisnikMijenjao: false,
       primjerVerzija: PRIMJER_VERZIJA,
+      uvodZatvoren: false,
+      // Zatvaranje uvoda nije izmjena podataka procjene, pa ide kroz rawSet - inače bi samo
+      // zatvaranje okvira zaustavilo automatsko osvježavanje primjera.
+      zatvoriUvod: () => rawSet({ uvodZatvoren: true }),
+      // Učitavanje iz datoteke: podaci prolaze kroz istu normalizaciju kao localStorage, pa
+      // nepotpuna datoteka ne može ostaviti polje kao undefined. Prikaz (uvodni okvir, zadnji
+      // korak) ostaje kakav je - datoteka nosi podatke, ne stanje sučelja.
+      zamijeniStanje: (podaci) => {
+        const n = normalizirajUcitanoStanje(podaci);
+        set({
+          poslodavac: n.poslodavac ?? PRAZAN_POSLODAVAC,
+          radnaMjesta: n.radnaMjesta ?? [],
+          poslovi: n.poslovi ?? [],
+          radnaOprema: n.radnaOprema ?? [],
+          mjerePlana: n.mjerePlana ?? [],
+          ispitivanja: n.ispitivanja ?? [],
+          napomenePriloga: n.napomenePriloga ?? {},
+          aktivniPosaoId: n.poslovi?.[0]?.id ?? null,
+          primjerVerzija: PRIMJER_VERZIJA,
+        });
+      },
       setZadnjiKorak: (korak) => rawSet({ zadnjiKorak: korak }),
       setAktivniPosaoId: (id) => rawSet({ aktivniPosaoId: id }),
       setNapomenaPriloga: (kljuc, tekst) =>

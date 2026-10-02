@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
-import { FileStack, RotateCcw } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { FileStack, FolderOpen, RotateCcw, Save } from "lucide-react";
 import { useStore } from "./state/store";
 import { NavProvider, useNav } from "./state/navigacija";
 import { izracunajProvjere } from "./utils/provjere";
 import { izveziDocx } from "./utils/docxExport";
+import { spremiStanjeUDatoteku, ucitajStanjeIzDatoteke } from "./utils/datoteka";
+import { useToast } from "./components/ui/toast";
 import TopBar from "./components/TopBar";
 import Stepper from "./components/Stepper";
 import ProvjerePanel from "./components/ProvjerePanel";
@@ -51,12 +53,16 @@ function Shell() {
   const radnaOprema = useStore((s) => s.radnaOprema);
   const mjerePlana = useStore((s) => s.mjerePlana);
   const ispitivanja = useStore((s) => s.ispitivanja);
+  const napomenePriloga = useStore((s) => s.napomenePriloga);
   const ucitajPrimjer = useStore((s) => s.ucitajPrimjer);
   const ocistiSve = useStore((s) => s.ocistiSve);
+  const zamijeniStanje = useStore((s) => s.zamijeniStanje);
   const { postaviKorak } = useNav();
+  const toast = useToast();
 
   const [provjereOtvorene, setProvjereOtvorene] = useState(false);
   const [izvozUTijeku, setIzvozUTijeku] = useState(false);
+  const unosDatoteke = useRef<HTMLInputElement>(null);
 
   const provjere = useMemo(
     () => izracunajProvjere({ poslodavac, radnaMjesta, poslovi, radnaOprema, mjerePlana, ispitivanja }),
@@ -83,6 +89,39 @@ function Shell() {
     }
   }
 
+  async function handleSpremiUDatoteku() {
+    try {
+      await spremiStanjeUDatoteku({
+        poslodavac,
+        radnaMjesta,
+        poslovi,
+        radnaOprema,
+        mjerePlana,
+        ispitivanja,
+        napomenePriloga,
+      });
+    } catch {
+      toast.prikazi("Spremanje u datoteku nije uspjelo.");
+    }
+  }
+
+  async function handleOdabranaDatoteka(e: React.ChangeEvent<HTMLInputElement>) {
+    const datoteka = e.target.files?.[0];
+    // Isti unos se smije ponovno odabrati, pa se vrijednost odmah prazni.
+    e.target.value = "";
+    if (!datoteka) return;
+    try {
+      const podaci = await ucitajStanjeIzDatoteke(datoteka);
+      if (!window.confirm("Zamijenit će trenutni unos. Nastaviti?")) return;
+      zamijeniStanje(podaci);
+      postaviKorak("nadzor");
+      toast.prikazi("Procjena je učitana iz datoteke.");
+    } catch (greska) {
+      const poruka = greska instanceof Error ? greska.message : "Datoteku nije bilo moguće učitati.";
+      toast.prikazi(poruka);
+    }
+  }
+
   return (
     <div className="min-h-screen">
       <TopBar
@@ -96,7 +135,28 @@ function Shell() {
         {/* Lijevo: stepper 1-7 sa statusima */}
         <aside className="no-print sticky top-14 hidden h-[calc(100vh-3.5rem)] w-[236px] shrink-0 flex-col justify-between overflow-y-auto border-r border-slate-200 bg-white p-3 md:flex">
           <Stepper provjere={provjere} />
-          <div className="pt-4">
+          <div className="flex flex-col gap-2 pt-4">
+            {/* Datoteka čuva rad i kad se očisti preglednik (localStorage se tada briše). */}
+            <Button variant="secondary" size="sm" className="w-full" onClick={handleSpremiUDatoteku}>
+              <Save />
+              Spremi u datoteku
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full"
+              onClick={() => unosDatoteke.current?.click()}
+            >
+              <FolderOpen />
+              Učitaj iz datoteke
+            </Button>
+            <input
+              ref={unosDatoteke}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={handleOdabranaDatoteka}
+            />
             {poslodavac.isPrimjer ? (
               <Button variant="secondary" size="sm" className="w-full" onClick={handleNovaProcjena}>
                 <FileStack />

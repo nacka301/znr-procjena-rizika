@@ -18,6 +18,13 @@ import { ERGONOMIJA_KATEGORIJE } from "../data/ergonomijaKategorije";
 import { jePosebniUvjeti, obrazlozenjePosebniUvjeti } from "./posebniUvjeti";
 import { ozoTekstSNormama } from "./ozo";
 
+/**
+ * Napomena o odgovornosti stručnjaka. Stoji pri vrhu pregleda dokumenta i na kraju Word izvoza,
+ * ispod zadnjeg priloga. Definirana je tu, uz izradu dokumenta, pa je isti tekst na oba mjesta.
+ */
+export const ODGOVORNOST_STRUCNJAKA =
+  "Dokument je pripremljen uz pomoć alata. Odabir opasnosti, stupanj rizika, OZO i posebne uvjete rada utvrđuje i potvrđuje ovlašteni stručnjak zaštite na radu.";
+
 const RAZINA_TEKST: Record<string, string> = {
   mali: "Mali rizik",
   srednji: "Srednji rizik",
@@ -449,7 +456,17 @@ export async function izradiDocxBlob(data: PodaciZaIzvoz): Promise<Blob> {
           page: { size: { orientation: PageOrientation.LANDSCAPE } },
         },
         headers: { default: zaglavlje },
-        children: [...cjelina3, ...cjelina4, new Paragraph({ text: "" }), ...cjelina5],
+        children: [
+          ...cjelina3,
+          ...cjelina4,
+          new Paragraph({ text: "" }),
+          ...cjelina5,
+          // Napomena o odgovornosti stručnjaka na kraju dokumenta, sitnijim fontom (16 half-points = 8pt).
+          new Paragraph({ text: "" }),
+          new Paragraph({
+            children: [new TextRun({ text: ODGOVORNOST_STRUCNJAKA, size: 16, italics: true })],
+          }),
+        ],
       },
     ],
   });

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ArrowRight, ListChecks } from "lucide-react";
+import { ArrowRight, ListChecks, X } from "lucide-react";
 import { useStore } from "../state/store";
 import { STEPS, useNav } from "../state/navigacija";
 import { izracunajRazinu, type RazinaRizika } from "../types";
@@ -34,6 +34,28 @@ function Brojka({
   );
 }
 
+/**
+ * Kratak uvod na prvom ekranu: što je ovo i što isprobati. Zatvara se jednom (X) i ne vraća se,
+ * jer se zastavica pamti u istom zapisu kao i podaci (zustand persist).
+ */
+function Uvod({ onZatvori }: { onZatvori: () => void }) {
+  return (
+    <Card className="border-slate-300 bg-slate-50">
+      <CardBody className="flex items-start gap-3">
+        <p className="min-w-0 flex-1 text-[13px] leading-relaxed text-slate-700">
+          Ovo je prototip s izmišljenim podacima. Isprobajte: 1) Radna mjesta i Poslovi — jedan
+          posao može se povezati s više radnih mjesta; 2) Analiza; 3) Prilozi se generiraju
+          automatski; 4) Word izvoz. Svi prijedlozi su pomoć — odabir rizika, stupanj i posebne
+          uvjete rada potvrđuje ovlašteni stručnjak.
+        </p>
+        <Button variant="ghost" size="iconSm" aria-label="Zatvori uvod" onClick={onZatvori}>
+          <X />
+        </Button>
+      </CardBody>
+    </Card>
+  );
+}
+
 export default function Step0Nadzor() {
   const poslodavac = useStore((s) => s.poslodavac);
   const radnaMjesta = useStore((s) => s.radnaMjesta);
@@ -42,6 +64,8 @@ export default function Step0Nadzor() {
   const mjerePlana = useStore((s) => s.mjerePlana);
   const ispitivanja = useStore((s) => s.ispitivanja);
   const zadnjiKorak = useStore((s) => s.zadnjiKorak);
+  const uvodZatvoren = useStore((s) => s.uvodZatvoren);
+  const zatvoriUvod = useStore((s) => s.zatvoriUvod);
   const { postaviKorak, idi } = useNav();
 
   const provjere = useMemo(
@@ -67,6 +91,8 @@ export default function Step0Nadzor() {
 
   return (
     <div className="flex flex-col gap-4">
+      {uvodZatvoren ? null : <Uvod onZatvori={zatvoriUvod} />}
+
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-[12px] font-medium uppercase tracking-wide text-slate-500">

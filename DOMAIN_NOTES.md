@@ -155,9 +155,10 @@ Ovaj krug mijenja **samo prikaz i interakciju**. Logika izračuna (`izracunajRaz
 ### Ispravci nakon prvog kruga redizajna
 
 - **Prilog 9 traži KONKRETNU točku.** `jeKonkretnaTocka` (src/utils/posebniUvjeti.ts) prihvaća
-  samo vodeći broj iza kojeg slijedi kraj teksta ili razdjelnik ("16 – teško fizičko naprezanje",
-  "17", "16."). Neodređena bilješka ("18 ili sljedeće, PROVJERITI") **ne** uključuje posao u
-  Prilog 9, jer to nije utvrđena točka nego napomena stručnjaka. U primjeru su takve bilješke
+  popis brojeva s mogućim podtočkama, uz neobvezni prefiks "točka"/"t." ("16", "17.",
+  "16 – teško fizičko naprezanje", "18/19", "18/24 buka", "18 (19)", "1, 16, 18/19, 18/24",
+  "t. 16"). Neodređena bilješka ("18 ili sljedeće, PROVJERITI", "treba provjeriti") **ne**
+  uključuje posao u Prilog 9, jer to nije utvrđena točka nego napomena stručnjaka. U primjeru su takve bilješke
   uklonjene kod "Vrući okoliš" i "Nadražljivci", pa u Prilogu 9 ostaje samo "Skladištenje i
   zaprimanje robe – točka 16".
 - **Točka Pravilnika nije mjerilo potpunosti.** Pravilo "veliki rizik bez točke Pravilnika"
@@ -174,3 +175,25 @@ Ovaj krug mijenja **samo prikaz i interakciju**. Logika izračuna (`izracunajRaz
   `korisnikMijenjao` izostane iz starijeg zapisa.
 - `izradiDocxBlob` odvojen je od `izveziDocx` i više ne ovisi o pregledniku (file-saver se
   učitava tek pri spremanju), pa se izvoz može provjeriti i izvan preglednika.
+
+### Drugi krug ispravaka
+
+- **Podtočke u točki Pravilnika.** `jeKonkretnaTocka` prepoznaje popis brojeva s podtočkama
+  (`18/19`, `1, 16, 18/19, 18/24`) i neobvezni prefiks "točka"/"t.". Iza popisa smije stajati
+  opisna oznaka ("18/24 buka", "16 – teško fizičko naprezanje"); tekst se odbija ako sadrži riječ
+  koja znači da točka nije utvrđena ("ili", "provjeriti", "možda", "nepoznato"…). Zbog toga je
+  "18 ili sljedeće, PROVJERITI" i dalje izvan Priloga 9, a "18/24 buka" ulazi.
+  Pravilo je pokriveno jediničnim testovima: `tests/posebniUvjeti.test.ts`, `npm test`
+  (node --test, bez dodatnih ovisnosti — Node sam uklanja tipove).
+- **Uvodni okvir na prvom ekranu** (`Uvod` u src/steps/Step0Nadzor.tsx) zatvara se jednom i ne
+  vraća se; zastavica `uvodZatvoren` pamti se u istom zapisu kao podaci. `STORE_VERSION` nije
+  podignut jer `normalizirajUcitanoStanje` nedostajućem polju ionako daje zadanu vrijednost.
+  Zatvaranje ide kroz `rawSet`, da ne označi stanje kao "korisnik mijenjao".
+- **Napomena o odgovornosti stručnjaka** (`ODGOVORNOST_STRUCNJAKA` u src/utils/docxExport.ts)
+  stoji pri vrhu Pregleda dokumenta i na kraju Word izvoza, sitnijim fontom (8 pt). Konstanta je
+  uz izradu dokumenta, pa izvoz ne ovisi o React komponentama.
+- **Spremi/Učitaj datoteku** (src/utils/datoteka.ts): cijelo stanje procjene ide u JSON s poljem
+  `version`, naziv `procjena-rizika-<poslodavac|nacrt>-<YYYY-MM-DD>.json`. Učitavanje provjerava
+  verziju i osnovnu strukturu, provlači podatke kroz `normalizirajUcitanoStanje` i traži potvrdu
+  prije zamjene. Neispravna datoteka daje razumljivu poruku i ne ruši aplikaciju. Datoteka nosi
+  podatke, ne stanje sučelja (uvodni okvir i zadnji korak ostaju kakvi jesu).
